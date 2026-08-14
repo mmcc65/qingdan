@@ -1,6 +1,6 @@
 import { PRIORITIES, createId, createInitialState, normalizeState, sortTasks, postponeDate, formatNode, isOverdue, searchState, toInputDate, flattenProjects, findProject, collectProjectTasks } from "./core.mjs";
 import { initializeCloud, getCloudConfig, saveCloudConfig, signUp, signIn, signOut, syncNow, scheduleCloudPush, isApplyingRemote } from "./cloud-sync.js";
-import { resolveUpdateManifest } from "./release-config.js";
+import { resolveUpdateManifests } from "./release-config.js";
 
 const STORAGE_KEY = "qingdan.state.v1";
 const $ = selector => document.querySelector(selector);
@@ -423,9 +423,11 @@ $("#exact-reminder-settings").addEventListener("click", () => window.QingdanAndr
 function checkAppUpdate(userInitiated = false) {
   const legacyCloudUrl = getCloudConfig()?.url;
   if (window.QingdanAndroid?.checkForUpdate) {
-    window.QingdanAndroid.checkForUpdate(resolveUpdateManifest("mobile", legacyCloudUrl), userInitiated);
+    const manifestUrls = resolveUpdateManifests("mobile", legacyCloudUrl);
+    window.QingdanAndroid.checkForUpdate(JSON.stringify(manifestUrls), userInitiated);
   } else if (window.chrome?.webview) {
-    window.chrome.webview.postMessage({ type: "check-update", manifestUrl: resolveUpdateManifest("desktop", legacyCloudUrl), userInitiated });
+    const manifestUrls = resolveUpdateManifests("desktop", legacyCloudUrl);
+    window.chrome.webview.postMessage({ type: "check-update", manifestUrl: manifestUrls[0] || "", manifestUrls, userInitiated });
   }
 }
 

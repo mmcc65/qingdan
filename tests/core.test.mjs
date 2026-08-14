@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { createInitialState, normalizeState, sortTasks, postponeDate, formatNode, searchState, flattenProjects, findProject, collectProjectTasks } from "../apps/web/src/core.mjs";
-import { resolveUpdateManifest } from "../apps/web/src/release-config.js";
+import { resolveUpdateManifest, resolveUpdateManifests } from "../apps/web/src/release-config.js";
 
 test("creates a valid initial state", () => {
   const state = createInitialState();
@@ -64,4 +64,15 @@ test("uses official update manifests with a legacy Supabase fallback", () => {
     "https://example.supabase.co/storage/v1/object/public/qingdan-releases/latest.json"
   );
   assert.equal(resolveUpdateManifest("desktop", "", {}), "");
+  assert.deepEqual(resolveUpdateManifests("mobile"), [
+    "https://isenfwmwaojwujfmmzoc.supabase.co/storage/v1/object/public/qingdan-releases/latest.json",
+    "https://github.com/mmcc65/qingdan/releases/latest/download/latest.json"
+  ]);
+  assert.deepEqual(
+    resolveUpdateManifests("mobile", "https://isenfwmwaojwujfmmzoc.supabase.co"),
+    [
+      "https://isenfwmwaojwujfmmzoc.supabase.co/storage/v1/object/public/qingdan-releases/latest.json",
+      "https://github.com/mmcc65/qingdan/releases/latest/download/latest.json"
+    ]
+  );
 });
