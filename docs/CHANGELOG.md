@@ -2,6 +2,19 @@
 
 本项目从公开预览版开始遵循语义化版本号。
 
+## [0.5.2] - 2026-08-15
+
+### 改进
+
+- 手机更新优先使用 Supabase 直连发布通道，失败时自动尝试 GitHub
+- 更新失败时记录具体通道异常，便于区分网络与发布配置问题
+- 保持 Windows 更新使用 GitHub Release，不改变现有桌面更新流程
+
+### 发布
+
+- Android/HarmonyOS `versionCode` 提升至 7
+- 手机 APK 和更新清单同步发布到 Supabase 与 GitHub
+
 ## [0.5.1] - 2026-08-15
 
 ### 修复
@@ -36,5 +49,6 @@
 - Windows 发布包尚未提供可信代码签名
 - 首次 GitHub Release 创建前，应用内更新地址会返回 404
 
+[0.5.2]: https://github.com/mmcc65/qingdan/releases/tag/v0.5.2
 [0.5.1]: https://github.com/mmcc65/qingdan/releases/tag/v0.5.1
 [0.5.0]: https://github.com/mmcc65/qingdan/releases/tag/v0.5.0

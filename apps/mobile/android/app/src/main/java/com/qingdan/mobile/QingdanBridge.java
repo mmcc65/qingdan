@@ -45,8 +45,8 @@ public final class QingdanBridge {
     }
 
     @JavascriptInterface
-    public void checkForUpdate(String manifestUrl, boolean userInitiated) {
-        activity.runOnUiThread(() -> activity.checkForUpdate(manifestUrl, userInitiated));
+    public void checkForUpdate(String manifestUrls, boolean userInitiated) {
+        activity.runOnUiThread(() -> activity.checkForUpdate(manifestUrls, userInitiated));
     }
 
     @JavascriptInterface

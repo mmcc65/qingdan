@@ -8,7 +8,7 @@
 
 它想解决一个很具体的问题：个人清单应该打开就能记、离线也能改，同时又不能为了跨设备同步而交出数据控制权，更不能在应用退出或设备重启后失去重要提醒。
 
-当前版本：`0.5.1 Beta`
+当前版本：`0.5.2 Beta`
 
 [下载最新版](https://github.com/mmcc65/qingdan/releases/latest) · [查看架构](docs/ARCHITECTURE.md) · [反馈问题](https://github.com/mmcc65/qingdan/issues)
 
@@ -112,7 +112,7 @@
 - 登录后自动进行首次同步、延迟上传和 Realtime 变化订阅，也可手动“立即同步”。
 - 同步状态会显示尚未配置、等待登录、正在同步、已同步或连接异常。
 - Supabase Row Level Security 按登录账户隔离数据；应用拒绝把 Secret/service_role key 当作客户端密钥。
-- 当前 `0.5.1` 以每个用户的一份完整状态进行同步，较新的时间戳覆盖较旧状态；复杂的并发字段合并仍是后续工作。
+- 当前 `0.5.2` 以每个用户的一份完整状态进行同步，较新的时间戳覆盖较旧状态；复杂的并发字段合并仍是后续工作。
 
 ### 7. 数据与应用设置
 
@@ -211,14 +211,15 @@ dotnet build apps/desktop/Qingdan.Desktop/Qingdan.Desktop.csproj -c Release
 
 ## 官方更新源
 
-数据同步地址和软件更新地址是两个不同的信任边界。当前官方发行版在 `apps/web/src/release-config.js` 中固定使用以下 GitHub Release 更新清单：
+数据同步地址和软件更新地址是两个不同的信任边界。当前官方发行版在 `apps/web/src/release-config.js` 中使用以下更新清单：
 
 ```text
 https://github.com/mmcc65/qingdan/releases/latest/download/desktop-latest.json
+https://isenfwmwaojwujfmmzoc.supabase.co/storage/v1/object/public/qingdan-releases/latest.json
 https://github.com/mmcc65/qingdan/releases/latest/download/latest.json
 ```
 
-二次开发者可以替换这两个地址。配置为空时，旧安装会暂时兼容使用用户 Supabase 的 `qingdan-releases` 桶。
+Windows 更新使用 GitHub Release。手机优先使用 Supabase 直连发布通道，失败时自动尝试 GitHub；因此 GitHub 受限的网络也能检查和下载手机更新。二次开发者可以替换这些地址。
 
 ## 数据与隐私
 

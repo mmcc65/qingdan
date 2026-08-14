@@ -8,18 +8,24 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.Environment;
 import android.provider.Settings;
+import android.util.Log;
 
 import androidx.core.content.FileProvider;
 
+import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.io.BufferedInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.security.MessageDigest;
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -29,14 +35,16 @@ final class MobileUpdater {
     private static final String PREFS = "mobile_updates";
     private static final String LAST_CHECK = "last_check";
     private static final String PENDING = "pending_update";
+    private static final String LOG_TAG = "QingdanUpdater";
     private static final long AUTO_CHECK_INTERVAL_MS = 6 * 60 * 60 * 1000L;
     private static final ExecutorService EXECUTOR = Executors.newSingleThreadExecutor();
     private static final AtomicBoolean BUSY = new AtomicBoolean(false);
 
     private MobileUpdater() {}
 
-    static void check(MainActivity activity, String manifestUrl, boolean userInitiated) {
-        if (manifestUrl == null || !manifestUrl.startsWith("https://")) {
+    static void check(MainActivity activity, String manifestUrlsValue, boolean userInitiated) {
+        List<String> manifestUrls = parseManifestUrls(manifestUrlsValue);
+        if (manifestUrls.isEmpty()) {
             if (userInitiated) showMessage(activity, "暂时无法检查更新", "此版本尚未配置可信的 HTTPS 更新源。");
             return;
         }
@@ -46,7 +54,7 @@ final class MobileUpdater {
         if (!BUSY.compareAndSet(false, true)) return;
         EXECUTOR.execute(() -> {
             try {
-                UpdateInfo update = fetchManifest(manifestUrl);
+                UpdateInfo update = fetchFirstManifest(manifestUrls);
                 preferences.edit().putLong(LAST_CHECK, now).apply();
                 long installed = installedVersionCode(activity);
                 activity.runOnUiThread(() -> {
@@ -54,12 +62,50 @@ final class MobileUpdater {
                     else if (userInitiated) showMessage(activity, "已经是最新版", "当前版本：" + activity.getAppVersionName());
                 });
             } catch (Exception error) {
+                Log.e(LOG_TAG, "All update manifest channels failed", error);
                 if (userInitiated) activity.runOnUiThread(() ->
-                        showMessage(activity, "检查更新失败", "请确认网络和更新发布通道可用。"));
+                        showMessage(activity, "检查更新失败", "直连更新通道和 GitHub 备用通道均不可用，请检查网络后重试。"));
             } finally {
                 BUSY.set(false);
             }
         });
+    }
+
+    private static List<String> parseManifestUrls(String value) {
+        LinkedHashSet<String> urls = new LinkedHashSet<>();
+        String normalized = value == null ? "" : value.trim();
+        try {
+            if (normalized.startsWith("[")) {
+                JSONArray array = new JSONArray(normalized);
+                for (int index = 0; index < array.length(); index++) addTrustedUrl(urls, array.optString(index));
+            } else {
+                addTrustedUrl(urls, normalized);
+            }
+        } catch (Exception error) {
+            Log.w(LOG_TAG, "Invalid update manifest channel list", error);
+        }
+        return new ArrayList<>(urls);
+    }
+
+    private static void addTrustedUrl(LinkedHashSet<String> urls, String value) {
+        try {
+            URL url = new URL(value == null ? "" : value.trim());
+            if ("https".equalsIgnoreCase(url.getProtocol())) urls.add(url.toString());
+        } catch (Exception ignored) { }
+    }
+
+    private static UpdateInfo fetchFirstManifest(List<String> manifestUrls) throws Exception {
+        Exception lastError = null;
+        for (String manifestUrl : manifestUrls) {
+            try {
+                return fetchManifest(manifestUrl);
+            } catch (Exception error) {
+                lastError = error;
+                Log.w(LOG_TAG, "Update channel failed: " + new URL(manifestUrl).getHost(), error);
+            }
+        }
+        if (lastError != null) throw lastError;
+        throw new IOException("No update manifest channel is available");
     }
 
     static void resumePendingInstall(MainActivity activity) {
@@ -77,7 +123,9 @@ final class MobileUpdater {
         HttpURLConnection connection = (HttpURLConnection) source.openConnection();
         connection.setConnectTimeout(12_000);
         connection.setReadTimeout(12_000);
+        connection.setInstanceFollowRedirects(true);
         connection.setRequestProperty("Cache-Control", "no-cache");
+        connection.setRequestProperty("User-Agent", "Qingdan-Android-Updater");
         try (BufferedInputStream input = new BufferedInputStream(connection.getInputStream())) {
             ByteArrayOutputStream output = new ByteArrayOutputStream();
             byte[] buffer = new byte[8 * 1024];
@@ -153,6 +201,7 @@ final class MobileUpdater {
                     activity.startActivity(install);
                 });
             } catch (Exception error) {
+                Log.e(LOG_TAG, "Update package download or verification failed", error);
                 activity.runOnUiThread(() -> {
                     progress.dismiss();
                     showMessage(activity, "下载更新失败", "安装包下载或校验失败，请稍后重试。");

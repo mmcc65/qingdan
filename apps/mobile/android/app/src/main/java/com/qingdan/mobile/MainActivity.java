@@ -66,8 +66,8 @@ public final class MainActivity extends Activity {
         notifyNativeResume();
     }
 
-    void checkForUpdate(String manifestUrl, boolean userInitiated) {
-        MobileUpdater.check(this, manifestUrl, userInitiated);
+    void checkForUpdate(String manifestUrls, boolean userInitiated) {
+        MobileUpdater.check(this, manifestUrls, userInitiated);
     }
 
     private void notifyNativeResume() {
