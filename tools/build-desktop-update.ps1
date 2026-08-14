@@ -23,7 +23,7 @@ Compress-Archive -Path (Join-Path $staging '*') -DestinationPath $archive -Compr
 $hash = (Get-FileHash -LiteralPath $archive -Algorithm SHA256).Hash.ToLower()
 $projectText = Get-Content -LiteralPath $project -Raw
 $version = [regex]::Match($projectText, '<Version>([^<]+)</Version>').Groups[1].Value
-$notes = [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('5paw5aKe6aG555uu5YaF5aSa57qn5a2Q6aG555uu77yM5Lul5Y+K55S16ISR44CB5omL5py65bqU55So5YaF6Ieq5Yqo5pu05paw44CC'))
+$notes = [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('5L+u5aSNIFdpbmRvd3Mg5ZCv5Yqo6ISa5pys5YW85a655oCn77yM5bm25Y+R5biD5LiO5b2T5YmN5rqQ56CB5LiA6Ie055qE5qGM6Z2i5pu05paw44CC'))
 $manifest = [ordered]@{
     version = $version
     packageUrl = 'Qingdan-desktop-release.zip'
