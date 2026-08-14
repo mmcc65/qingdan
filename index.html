@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#ffffff">
+  <meta name="description" content="轻量、清晰的个人工作清单">
+  <title>清单</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="assets/qingdan-icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="brand" aria-label="清单首页">
+        <span class="brand-mark">清</span>
+        <div><strong>清单</strong><small id="sync-status">仅保存在本机</small></div>
+      </div>
+      <nav class="tabs" aria-label="主要页面">
+        <button class="tab active" data-view="todo">待办 <span id="todo-count">0</span></button>
+        <button class="tab" data-view="repeat">重复 <span id="repeat-count">0</span></button>
+        <button class="tab" data-view="projects">项目 <span id="project-count">0</span></button>
+      </nav>
+      <div class="top-actions">
+        <button class="icon-button" id="search-button" title="搜索" aria-label="搜索">⌕</button>
+        <button class="icon-button" id="settings-button" title="设置" aria-label="设置">⋯</button>
+      </div>
+    </header>
+
+    <main>
+      <section class="view active" id="todo-view">
+        <div class="page-heading">
+          <div><p class="eyebrow">一次性任务</p><h1>待办</h1><p>按重要程度分开处理，顺序由你决定。</p></div>
+          <button class="primary-button add-button" data-kind="todo"><span>＋</span> 添加待办</button>
+        </div>
+        <div class="module-filter" data-module="todo">
+          <button class="active" data-status="active">进行中 <span id="todo-active-count">0</span></button>
+          <button data-status="completed">已完成 <span id="todo-completed-count">0</span></button>
+          <button data-status="cancelled">已取消 <span id="todo-cancelled-count">0</span></button>
+        </div>
+        <div class="priority-grid" id="todo-columns"></div>
+        <div class="archive-panel" id="todo-archive"></div>
+      </section>
+
+      <section class="view" id="repeat-view">
+        <div class="page-heading">
+          <div><p class="eyebrow">周期安排</p><h1>重复</h1><p>跳过一次，不会影响之后的计划。</p></div>
+          <button class="primary-button add-button" data-kind="repeat"><span>＋</span> 添加重复任务</button>
+        </div>
+        <div class="module-filter" data-module="repeat">
+          <button class="active" data-status="active">进行中 <span id="repeat-active-count">0</span></button>
+          <button data-status="completed">完成记录 <span id="repeat-completed-count">0</span></button>
+          <button data-status="cancelled">跳过记录 <span id="repeat-cancelled-count">0</span></button>
+        </div>
+        <div class="content-panel" id="repeat-list"></div>
+        <div class="archive-panel" id="repeat-archive"></div>
+      </section>
+
+      <section class="view" id="projects-view">
+        <div class="page-heading">
+          <div><p class="eyebrow">有序推进</p><h1>项目</h1><p>项目内部以你的流程顺序为主。</p></div>
+          <button class="primary-button" id="add-project"><span>＋</span> 新建项目</button>
+        </div>
+        <div class="module-filter" data-module="projects">
+          <button class="active" data-status="active">进行中 <span id="project-active-count">0</span></button>
+          <button data-status="completed">已完成 <span id="project-completed-count">0</span></button>
+          <button data-status="cancelled">已取消 <span id="project-cancelled-count">0</span></button>
+        </div>
+        <div class="projects-grid" id="projects-list"></div>
+        <div class="archive-panel" id="projects-archive"></div>
+      </section>
+    </main>
+
+    <button class="floating-add add-button" data-kind="todo" aria-label="快速添加">＋</button>
+  </div>
+
+  <dialog id="task-dialog">
+    <form method="dialog" id="task-form">
+      <div class="dialog-header"><div><p class="eyebrow" id="dialog-kicker">新任务</p><h2 id="dialog-title">添加待办</h2></div><button type="button" class="close-button" data-close="task-dialog" aria-label="关闭">×</button></div>
+      <input type="hidden" id="task-id"><input type="hidden" id="task-kind"><input type="hidden" id="task-project-id">
+      <label class="field"><span>任务名称</span><input id="task-name" required maxlength="120" autocomplete="off" placeholder="准备做什么？"></label>
+      <fieldset class="field"><legend>重要程度</legend><div class="segmented priority-picker">
+        <label><input type="radio" name="priority" value="important"><span><i class="dot important"></i>重要</span></label>
+        <label><input type="radio" name="priority" value="normal" checked><span><i class="dot normal"></i>普通</span></label>
+        <label><input type="radio" name="priority" value="later"><span><i class="dot later"></i>随后</span></label>
+      </div></fieldset>
+      <div class="two-columns">
+        <label class="field"><span>节点 <em>可选</em></span><input type="datetime-local" id="task-node"></label>
+        <label class="field repeat-only"><span>重复规则</span><select id="task-rule"><option value="每天">每天</option><option value="每个工作日">每个工作日</option><option value="每周">每周</option><option value="每月">每月</option><option value="每隔 2 周">每隔 2 周</option></select></label>
+      </div>
+      <label class="field"><span>提醒</span><select id="task-reminder"><option value="none">不提醒</option><option value="single">单次提醒</option><option value="interval">循环提醒</option></select></label>
+      <div class="reminder-details" id="single-reminder-settings">
+        <label class="field"><span>提醒时间 <em>不填则使用任务节点</em></span><input type="datetime-local" id="reminder-at"></label>
+      </div>
+      <div class="reminder-details" id="interval-reminder-settings">
+        <div class="two-columns">
+          <label class="field"><span>开始时间 <em>可选</em></span><input type="datetime-local" id="reminder-start"></label>
+          <label class="field"><span>结束时间 <em>可选</em></span><input type="datetime-local" id="reminder-end"></label>
+        </div>
+        <div class="interval-row">
+          <label class="field"><span>提醒间隔</span><input type="number" id="reminder-interval" min="1" max="999" value="30" inputmode="numeric"></label>
+          <label class="field"><span>单位</span><select id="reminder-unit"><option value="minute">分钟</option><option value="hour">小时</option><option value="day">天</option></select></label>
+        </div>
+        <p class="field-help">开始时间不填时从当前时间开始；结束时间不填时使用任务节点。</p>
+      </div>
+      <label class="field"><span>备注 <em>可选</em></span><textarea id="task-notes" rows="3" maxlength="1000" placeholder="补充必要信息，不显示在主列表中"></textarea></label>
+      <label class="check-row"><input type="checkbox" id="task-pinned"><span>置顶这项任务</span></label>
+      <div class="dialog-actions"><button type="button" data-close="task-dialog" class="secondary-button">取消</button><button type="submit" value="default" class="primary-button">保存</button></div>
+    </form>
+  </dialog>
+
+  <dialog id="project-dialog" class="small-dialog">
+    <form method="dialog" id="project-form">
+      <div class="dialog-header"><div><p class="eyebrow" id="project-dialog-kicker">项目</p><h2 id="project-dialog-title">新建项目</h2></div><button type="button" class="close-button" data-close="project-dialog" aria-label="关闭">×</button></div>
+      <input type="hidden" id="project-parent-id">
+      <label class="field"><span>项目名称</span><input id="project-name" required maxlength="60" placeholder="例如：小车项目"></label>
+      <div class="dialog-actions"><button type="button" data-close="project-dialog" class="secondary-button">取消</button><button type="submit" class="primary-button">创建</button></div>
+    </form>
+  </dialog>
+
+  <dialog id="search-dialog">
+    <div class="dialog-header"><div><p class="eyebrow">全局</p><h2>搜索</h2></div><button class="close-button" data-close="search-dialog">×</button></div>
+    <label class="search-box">⌕ <input id="search-input" autocomplete="off" placeholder="搜索任务或项目"></label>
+    <div id="search-results" class="search-results"><p class="empty-note">输入关键词开始搜索</p></div>
+  </dialog>
+
+  <dialog id="settings-dialog" class="small-dialog">
+    <div class="dialog-header"><div><p class="eyebrow">偏好</p><h2>数据与同步</h2></div><button class="close-button" data-close="settings-dialog">×</button></div>
+    <div class="settings-card"><span>本机任务数据</span><strong id="data-size">0 KB</strong></div>
+    <div class="settings-card"><span>缓存</span><strong id="cache-size">正在计算</strong></div>
+    <section class="cloud-section">
+      <div class="cloud-heading"><div><strong>云同步</strong><small id="cloud-status">尚未配置</small></div><span class="status-dot" id="cloud-status-dot"></span></div>
+      <div id="cloud-config-panel">
+        <label class="field"><span>Project URL</span><input id="cloud-url" type="url" autocomplete="off" placeholder="https://xxxx.supabase.co"></label>
+        <label class="field"><span>Publishable key</span><input id="cloud-key" type="password" autocomplete="off" placeholder="sb_publishable_..."></label>
+        <button id="save-cloud-config" class="secondary-button full-button">保存连接配置</button>
+      </div>
+      <div id="cloud-auth-panel" class="hidden">
+        <label class="field"><span>登录邮箱</span><input id="cloud-email" type="email" autocomplete="email" placeholder="你的邮箱"></label>
+        <label class="field"><span>登录密码</span><input id="cloud-password" type="password" autocomplete="current-password" minlength="8" placeholder="至少 8 位"></label>
+        <div class="cloud-actions"><button id="cloud-sign-up" class="secondary-button">注册</button><button id="cloud-sign-in" class="primary-button">登录并同步</button></div>
+      </div>
+      <div id="cloud-user-panel" class="hidden">
+        <div class="signed-in-row"><span>已登录</span><strong id="cloud-user-email"></strong></div>
+        <div class="cloud-actions"><button id="sync-now" class="primary-button">立即同步</button><button id="cloud-sign-out" class="secondary-button">退出登录</button></div>
+      </div>
+    </section>
+    <p class="settings-copy">本地优先，断网仍可编辑；恢复网络后自动同步。不要在此填写 Secret 或 service_role key。</p>
+    <button id="check-app-update" class="secondary-button full-button hidden">检查应用更新</button>
+    <button id="exact-reminder-settings" class="secondary-button full-button hidden">手机精确提醒：需要开启</button>
+    <button id="test-reminder" class="secondary-button full-button">测试提醒通知</button>
+    <button id="clear-cache" class="secondary-button full-button">清理缓存（不会删除任务）</button>
+  </dialog>
+
+  <div id="toast" role="status" aria-live="polite"></div>
+  <script src="vendor/supabase.js"></script>
+  <script type="module" src="src/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,34 @@
+<Window x:Class="Qingdan.Desktop.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:wv2="clr-namespace:Microsoft.Web.WebView2.Wpf;assembly=Microsoft.Web.WebView2.Wpf"
+        Title="清单" Width="1100" Height="760" MinWidth="390" MinHeight="560"
+        WindowStyle="None" ResizeMode="CanResizeWithGrip" Background="#F4F5F1"
+        Icon="Assets/Qingdan.ico">
+  <Window.Resources>
+    <Style x:Key="TitleButton" TargetType="Button">
+      <Setter Property="Height" Value="33"/><Setter Property="MinWidth" Value="46"/><Setter Property="Padding" Value="10,0"/>
+      <Setter Property="Background" Value="Transparent"/><Setter Property="BorderThickness" Value="0"/><Setter Property="Foreground" Value="#626862"/>
+      <Style.Triggers><Trigger Property="IsMouseOver" Value="True"><Setter Property="Background" Value="#F2F4F0"/></Trigger></Style.Triggers>
+    </Style>
+    <Style x:Key="CloseButton" TargetType="Button" BasedOn="{StaticResource TitleButton}">
+      <Style.Triggers><Trigger Property="IsMouseOver" Value="True"><Setter Property="Background" Value="#C9544D"/><Setter Property="Foreground" Value="White"/></Trigger></Style.Triggers>
+    </Style>
+  </Window.Resources>
+  <Border BorderBrush="#DADDD7" BorderThickness="1">
+    <Grid>
+      <Grid.RowDefinitions><RowDefinition Height="34"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+      <Border Grid.Row="0" Background="#FFFFFF" BorderBrush="#E4E6E0" BorderThickness="0,0,0,1" MouseLeftButtonDown="TitleBar_MouseLeftButtonDown">
+        <Grid>
+          <TextBlock Text="清单" Margin="12,0,0,0" VerticalAlignment="Center" FontSize="12" FontWeight="SemiBold" Foreground="#3C433E"/>
+          <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+            <Button x:Name="TopmostButton" Content="置顶" Click="TopmostButton_Click" Style="{StaticResource TitleButton}"/>
+            <Button Content="—" Click="MinimizeButton_Click" Style="{StaticResource TitleButton}"/>
+            <Button Content="×" Click="CloseButton_Click" Style="{StaticResource CloseButton}"/>
+          </StackPanel>
+        </Grid>
+      </Border>
+      <wv2:WebView2 x:Name="Browser" Grid.Row="1" />
+    </Grid>
+  </Border>
+</Window>

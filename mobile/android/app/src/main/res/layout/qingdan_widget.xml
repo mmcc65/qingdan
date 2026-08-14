@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#F8F9F6"
+    android:orientation="vertical"
+    android:padding="14dp">
+
+    <TextView
+        android:id="@+id/widget_title"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="清单 · 待办"
+        android:textColor="#203F34"
+        android:textSize="18sp"
+        android:textStyle="bold" />
+
+    <TextView android:id="@+id/widget_task_1" style="@style/WidgetTask" />
+    <TextView android:id="@+id/widget_task_2" style="@style/WidgetTask" />
+    <TextView android:id="@+id/widget_task_3" style="@style/WidgetTask" />
+</LinearLayout>

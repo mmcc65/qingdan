@@ -1,0 +1,70 @@
+plugins {
+    id 'com.android.application'
+}
+
+def signingProperties = new Properties()
+def signingPropertiesFile = rootProject.file('../signing/private/signing.properties')
+if (signingPropertiesFile.exists()) {
+    signingPropertiesFile.withInputStream { signingProperties.load(it) }
+}
+
+android {
+    namespace 'com.qingdan.mobile'
+    compileSdk 35
+
+    defaultConfig {
+        applicationId 'com.qingdan.mobile'
+        minSdk 26
+        targetSdk 35
+        versionCode 5
+        versionName '0.5.0'
+    }
+
+    signingConfigs {
+        release {
+            if (signingPropertiesFile.exists()) {
+                storeFile rootProject.file(signingProperties['storeFile'])
+                storePassword signingProperties['storePassword']
+                keyAlias signingProperties['keyAlias']
+                keyPassword signingProperties['keyPassword']
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled true
+            shrinkResources true
+            if (signingPropertiesFile.exists()) signingConfig signingConfigs.release
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+}
+
+dependencies {
+    implementation 'androidx.webkit:webkit:1.12.1'
+}
+
+def repositoryRoot = rootProject.file('../..')
+def generatedAssets = layout.buildDirectory.dir('generated/qingdan-assets')
+def generatedResources = layout.buildDirectory.dir('generated/qingdan-resources')
+
+tasks.register('syncQingdanWeb', Sync) {
+    from(repositoryRoot) {
+        include 'index.html', 'styles.css', 'manifest.webmanifest', 'sw.js'
+        include 'src/app.js', 'src/core.mjs', 'src/cloud-sync.js', 'src/release-config.js'
+        include 'vendor/supabase.js'
+        include 'assets/qingdan-icon.svg', 'assets/qingdan-icon-192.png', 'assets/qingdan-icon-512.png'
+    }
+    into(generatedAssets.map { it.dir('web') })
+}
+
+tasks.register('syncQingdanIcon', Sync) {
+    from(new File(repositoryRoot, 'assets/qingdan-icon-192.png'))
+    into(generatedResources.map { it.dir('drawable') })
+    rename { 'qingdan_icon.png' }
+}
+
+android.sourceSets.main.assets.srcDir(generatedAssets)
+android.sourceSets.main.res.srcDir(generatedResources)
+tasks.named('preBuild').configure { dependsOn 'syncQingdanWeb', 'syncQingdanIcon' }

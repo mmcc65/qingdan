@@ -1,0 +1,27 @@
+<Window x:Class="Qingdan.Desktop.ReminderWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="清单提醒" Width="360" Height="210" ResizeMode="NoResize"
+        WindowStyle="None" AllowsTransparency="True" Background="Transparent"
+        ShowInTaskbar="False" ShowActivated="False" Topmost="True"
+        Icon="Assets/Qingdan.ico">
+  <Border Background="White" BorderBrush="#DDE2DC" BorderThickness="1" CornerRadius="16" Padding="20">
+    <Border.Effect><DropShadowEffect BlurRadius="28" ShadowDepth="8" Opacity="0.18" Color="#1D2A23"/></Border.Effect>
+    <Grid>
+      <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+      <Grid Grid.Row="0">
+        <StackPanel Orientation="Horizontal">
+          <Border Width="30" Height="30" CornerRadius="9" Background="#263B31"><TextBlock Text="清" Foreground="White" FontWeight="Bold" VerticalAlignment="Center" HorizontalAlignment="Center"/></Border>
+          <StackPanel Margin="10,0,0,0"><TextBlock Text="清单提醒" FontWeight="SemiBold" Foreground="#26302A"/><TextBlock x:Name="NodeText" FontSize="11" Foreground="#818781" Margin="0,2,0,0"/></StackPanel>
+        </StackPanel>
+        <Button Content="×" HorizontalAlignment="Right" VerticalAlignment="Top" Width="28" Height="28" BorderThickness="0" Background="Transparent" Foreground="#737A74" FontSize="20" Click="Close_Click"/>
+      </Grid>
+      <TextBlock x:Name="TaskName" Grid.Row="1" Margin="0,20,0,14" FontSize="18" FontWeight="SemiBold" Foreground="#20241F" TextWrapping="Wrap" VerticalAlignment="Center"/>
+      <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right">
+        <Button Content="10 分钟后" Padding="13,8" Margin="0,0,8,0" Background="#F5F7F4" BorderBrush="#DFE3DE" Click="Snooze_Click"/>
+        <Button Content="关闭" Padding="13,8" Margin="0,0,8,0" Background="#F5F7F4" BorderBrush="#DFE3DE" Click="Close_Click"/>
+        <Button Content="完成" Padding="16,8" Background="#263B31" Foreground="White" BorderBrush="#263B31" FontWeight="SemiBold" Click="Complete_Click"/>
+      </StackPanel>
+    </Grid>
+  </Border>
+</Window>

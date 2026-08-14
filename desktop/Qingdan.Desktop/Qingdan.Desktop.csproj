@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <UseWindowsForms>true</UseWindowsForms>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AssemblyName>Qingdan</AssemblyName>
+    <RootNamespace>Qingdan.Desktop</RootNamespace>
+    <Version>0.5.0</Version>
+    <ApplicationIcon>Assets\Qingdan.ico</ApplicationIcon>
+  </PropertyGroup>
+  <ItemGroup>
+    <Resource Include="Assets\Qingdan.ico" />
+    <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.4078.44" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="..\..\index.html" Link="Web\index.html" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\..\styles.css" Link="Web\styles.css" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\..\manifest.webmanifest" Link="Web\manifest.webmanifest" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\..\sw.js" Link="Web\sw.js" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\..\src\app.js" Link="Web\src\app.js" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\..\src\core.mjs" Link="Web\src\core.mjs" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\..\src\cloud-sync.js" Link="Web\src\cloud-sync.js" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\..\src\release-config.js" Link="Web\src\release-config.js" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\..\vendor\supabase.js" Link="Web\vendor\supabase.js" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\..\assets\qingdan-icon.svg" Link="Web\assets\qingdan-icon.svg" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\..\assets\qingdan-icon-192.png" Link="Web\assets\qingdan-icon-192.png" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\..\assets\qingdan-icon-512.png" Link="Web\assets\qingdan-icon-512.png" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>
