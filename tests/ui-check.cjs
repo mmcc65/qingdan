@@ -70,10 +70,11 @@ const server = http.createServer((req, res) => {
     if (manualEnd !== "2026-08-14T17:00") throw new Error(`Manual reminder end was overwritten: ${manualEnd}`);
     await desktop.fill("#reminder-interval", "45");
     await desktop.click("#task-form button[type=submit]");
-    await desktop.getByText("自动化测试任务").waitFor();
+    const testCard = desktop.locator("#todo-columns .task-card", { hasText: "自动化测试任务" });
+    await testCard.waitFor();
+    await desktop.waitForFunction(() => JSON.parse(localStorage.getItem("qingdan.state.v1") || "null")?.tasks?.some(task => task.name === "自动化测试任务"));
     const savedReminder = await desktop.evaluate(() => JSON.parse(localStorage.getItem("qingdan.state.v1")).tasks.find(task => task.name === "自动化测试任务").reminder);
     if (savedReminder.mode !== "interval" || savedReminder.interval !== 45 || savedReminder.unit !== "minute") throw new Error(`Flexible reminder was not persisted: ${JSON.stringify(savedReminder)}`);
-    const testCard = desktop.locator(".task-card", { hasText: "自动化测试任务" });
     await testCard.locator("[data-action=complete]").click();
     await desktop.click(".module-filter[data-module=todo] button[data-status=completed]");
     const archivedTask = desktop.locator(".archive-card", { hasText: "自动化测试任务" });
@@ -87,6 +88,18 @@ const server = http.createServer((req, res) => {
 
     const mobile = await browser.newPage({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 1 });
     await mobile.goto(`http://127.0.0.1:${port}`, { waitUntil: "networkidle" });
+    const floatingAdd = mobile.locator("#floating-add");
+    if (await floatingAdd.getAttribute("aria-label") !== "添加待办") throw new Error("Mobile add button did not start in todo mode");
+    await mobile.click("button[data-view=repeat]");
+    if (await floatingAdd.getAttribute("aria-label") !== "添加重复任务") throw new Error("Mobile add button did not switch to repeat mode");
+    await floatingAdd.click();
+    if (await mobile.locator("#task-dialog").evaluate(dialog => !dialog.open || !dialog.classList.contains("is-repeat"))) throw new Error("Mobile repeat add button did not open a repeat task dialog");
+    await mobile.locator("#task-dialog .close-button").click();
+    await mobile.click("button[data-view=projects]");
+    if (await floatingAdd.getAttribute("aria-label") !== "新建项目") throw new Error("Mobile add button did not switch to project mode");
+    await floatingAdd.click();
+    if (await mobile.locator("#project-dialog").evaluate(dialog => !dialog.open)) throw new Error("Mobile project add button did not open project dialog");
+    await mobile.locator("#project-dialog .close-button").click();
     await mobile.screenshot({ path: path.join(output, "qingdan-mobile.png"), fullPage: true });
 
     const compact = await browser.newPage({ viewport: { width: 639, height: 700 }, deviceScaleFactor: 1 });
