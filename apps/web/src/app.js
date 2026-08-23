@@ -10,6 +10,17 @@ let activeView = "todo";
 let reminderTimeTouched = { start: false, end: false };
 const moduleStatus = { todo: "active", repeat: "active", projects: "active" };
 
+function updateFloatingAdd() {
+  const button = $("#floating-add");
+  if (!button) return;
+  const projectView = activeView === "projects";
+  const label = projectView ? "新建项目" : activeView === "repeat" ? "添加重复任务" : "添加待办";
+  button.dataset.kind = projectView ? "" : activeView;
+  button.dataset.action = projectView ? "add-project" : "add-task";
+  button.setAttribute("aria-label", label);
+  button.title = label;
+}
+
 function loadState() {
   try { return normalizeState(JSON.parse(localStorage.getItem(STORAGE_KEY))); }
   catch { return createInitialState(); }
@@ -307,9 +318,13 @@ document.addEventListener("click", event => {
     activeView = tab.dataset.view;
     $$(".tab").forEach(el => el.classList.toggle("active", el === tab));
     $$(".view").forEach(el => el.classList.toggle("active", el.id === `${activeView}-view`));
+    updateFloatingAdd();
   }
   const add = event.target.closest(".add-button");
-  if (add) openTaskDialog(add.dataset.kind || "todo");
+  if (add) {
+    if (add.dataset.action === "add-project") openProjectDialog();
+    else openTaskDialog(add.dataset.kind || "todo");
+  }
   const inline = event.target.closest(".add-inline");
   if (inline) openTaskDialog("todo", null, "", inline.dataset.priority);
   const projectTask = event.target.closest(".add-project-task");
@@ -483,6 +498,7 @@ if (window.chrome?.webview) {
   });
 }
 render();
+updateFloatingAdd();
 syncDesktopState();
 initializeCloud({
   getState: () => state,

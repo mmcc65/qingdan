@@ -8,7 +8,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <AssemblyName>Qingdan</AssemblyName>
     <RootNamespace>Qingdan.Desktop</RootNamespace>
-    <Version>0.5.2</Version>
+    <Version>0.5.3</Version>
     <ApplicationIcon>Assets\Qingdan.ico</ApplicationIcon>
   </PropertyGroup>
   <ItemGroup>

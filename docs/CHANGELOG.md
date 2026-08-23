@@ -2,6 +2,18 @@
 
 本项目从公开预览版开始遵循语义化版本号。
 
+## [0.5.3] - 2026-08-23
+
+### 修复
+
+- 修复手机和窄屏布局右下角“＋”始终只能添加待办的问题
+- 在重复页面通过“＋”添加重复任务，在项目页面通过“＋”新建项目
+
+### 发布
+
+- Android/HarmonyOS `versionCode` 提升至 8
+- 同步发布 Windows、Android/HarmonyOS 安装包和应用内更新清单
+
 ## [0.5.2] - 2026-08-15
 
 ### 改进
@@ -49,6 +61,7 @@
 - Windows 发布包尚未提供可信代码签名
 - 首次 GitHub Release 创建前，应用内更新地址会返回 404
 
+[0.5.3]: https://github.com/mmcc65/qingdan/releases/tag/v0.5.3
 [0.5.2]: https://github.com/mmcc65/qingdan/releases/tag/v0.5.2
 [0.5.1]: https://github.com/mmcc65/qingdan/releases/tag/v0.5.1
 [0.5.0]: https://github.com/mmcc65/qingdan/releases/tag/v0.5.0
