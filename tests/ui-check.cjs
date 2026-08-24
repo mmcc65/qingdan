@@ -35,6 +35,7 @@ const server = http.createServer((req, res) => {
     await rootProject.locator(":scope > .project-body > .project-add-actions > .add-subproject").click();
     await desktop.fill("#project-name", "自动化子项目");
     await desktop.click("#project-form button[type=submit]");
+    if (await desktop.locator("#project-count").textContent() !== "1") throw new Error("Project count included a nested subproject");
     const childProject = rootProject.locator(".subproject-card", { hasText: "自动化子项目" });
     await childProject.waitFor();
     await childProject.locator(":scope > .project-body > .project-add-actions > .add-project-task").click();
@@ -69,12 +70,17 @@ const server = http.createServer((req, res) => {
     const manualEnd = await desktop.locator("#reminder-end").inputValue();
     if (manualEnd !== "2026-08-14T17:00") throw new Error(`Manual reminder end was overwritten: ${manualEnd}`);
     await desktop.fill("#reminder-interval", "45");
+    await desktop.click("#add-reminder-slot");
+    if (await desktop.locator("#reminder-slots .reminder-slot").count() !== 2) throw new Error("Reminder slot add button did not create a second time slot");
+    await desktop.fill("#reminder-start-1", "2026-08-14T20:00");
+    await desktop.fill("#reminder-end-1", "2026-08-14T22:00");
+    await desktop.fill("#reminder-interval-1", "60");
     await desktop.click("#task-form button[type=submit]");
     const testCard = desktop.locator("#todo-columns .task-card", { hasText: "自动化测试任务" });
     await testCard.waitFor();
     await desktop.waitForFunction(() => JSON.parse(localStorage.getItem("qingdan.state.v1") || "null")?.tasks?.some(task => task.name === "自动化测试任务"));
     const savedReminder = await desktop.evaluate(() => JSON.parse(localStorage.getItem("qingdan.state.v1")).tasks.find(task => task.name === "自动化测试任务").reminder);
-    if (savedReminder.mode !== "interval" || savedReminder.interval !== 45 || savedReminder.unit !== "minute") throw new Error(`Flexible reminder was not persisted: ${JSON.stringify(savedReminder)}`);
+    if (savedReminder.mode !== "interval" || savedReminder.interval !== 45 || savedReminder.unit !== "minute" || savedReminder.slots?.length !== 2 || savedReminder.slots[1]?.interval !== 60) throw new Error(`Flexible reminder was not persisted: ${JSON.stringify(savedReminder)}`);
     await testCard.locator("[data-action=complete]").click();
     await desktop.click(".module-filter[data-module=todo] button[data-status=completed]");
     const archivedTask = desktop.locator(".archive-card", { hasText: "自动化测试任务" });
@@ -84,6 +90,18 @@ const server = http.createServer((req, res) => {
     await archivedTask.locator("[data-archive-action=restore]").click();
     await desktop.click(".module-filter[data-module=todo] button[data-status=active]");
     await desktop.getByText("自动化测试任务").waitFor();
+    await desktop.click("button[data-kind=todo]");
+    await desktop.fill("#task-name", "排序任务 A");
+    await desktop.click("#task-form button[type=submit]");
+    await desktop.click("button[data-kind=todo]");
+    await desktop.fill("#task-name", "排序任务 B");
+    await desktop.click("#task-form button[type=submit]");
+    const normalColumn = desktop.locator("#todo-columns .priority-column").nth(1);
+    const taskB = normalColumn.locator(".task-card", { hasText: "排序任务 B" });
+    await taskB.locator("[data-action=menu]").click();
+    await taskB.locator("[data-action=move-up]").click();
+    const orderedTaskNames = await normalColumn.locator(".task-card .task-name").allTextContents();
+    if (orderedTaskNames.indexOf("排序任务 B") !== orderedTaskNames.indexOf("排序任务 A") - 1) throw new Error(`Manual task order was not applied: ${JSON.stringify(orderedTaskNames)}`);
     if (errors.length) throw new Error(`Page errors: ${errors.join("; ")}`);
 
     const mobile = await browser.newPage({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 1 });
@@ -120,7 +138,7 @@ const server = http.createServer((req, res) => {
     }));
     if (overflow.scrollWidth > overflow.clientWidth) throw new Error(`Task dialog has horizontal overflow: ${JSON.stringify(overflow)}`);
     await compact.screenshot({ path: path.join(output, "qingdan-dialog-compact.png"), fullPage: true });
-    console.log("UI check passed: nested projects/tasks, navigation, history/restore, blank cancel/close, automatic and flexible reminder, no horizontal overflow, desktop and mobile rendering.");
+    console.log("UI check passed: nested projects/tasks, navigation, history/restore, blank cancel/close, manual task order, multiple reminder slots, automatic and flexible reminder, no horizontal overflow, desktop and mobile rendering.");
   } finally {
     await browser.close();
     server.close();

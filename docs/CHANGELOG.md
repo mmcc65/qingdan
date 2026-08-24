@@ -2,6 +2,20 @@
 
 本项目从公开预览版开始遵循语义化版本号。
 
+## [0.5.5] - 2026-08-24
+
+### 修复
+
+- 修复顶部“项目”数量把大项目和子项目合并统计的问题
+- 项目数量现在只统计顶层大项目，子项目不再单独计数
+- 增加项目和任务的“上移一项/下移一项”手动排序操作
+- 循环提醒支持在一个任务中添加多个独立提醒时间段，并兼容旧版单时间段数据
+
+### 发布
+
+- Android/HarmonyOS `versionCode` 提升至 10
+- 同步发布 Windows、Android/HarmonyOS 安装包和应用内更新清单
+
 ## [0.5.3] - 2026-08-23
 
 ### 修复
@@ -61,6 +75,7 @@
 - Windows 发布包尚未提供可信代码签名
 - 首次 GitHub Release 创建前，应用内更新地址会返回 404
 
+[0.5.5]: https://github.com/mmcc65/qingdan/releases/tag/v0.5.5
 [0.5.3]: https://github.com/mmcc65/qingdan/releases/tag/v0.5.3
 [0.5.2]: https://github.com/mmcc65/qingdan/releases/tag/v0.5.2
 [0.5.1]: https://github.com/mmcc65/qingdan/releases/tag/v0.5.1

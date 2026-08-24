@@ -94,15 +94,9 @@
         <label class="field"><span>提醒时间 <em>不填则使用任务节点</em></span><input type="datetime-local" id="reminder-at"></label>
       </div>
       <div class="reminder-details" id="interval-reminder-settings">
-        <div class="two-columns">
-          <label class="field"><span>开始时间 <em>可选</em></span><input type="datetime-local" id="reminder-start"></label>
-          <label class="field"><span>结束时间 <em>可选</em></span><input type="datetime-local" id="reminder-end"></label>
-        </div>
-        <div class="interval-row">
-          <label class="field"><span>提醒间隔</span><input type="number" id="reminder-interval" min="1" max="999" value="30" inputmode="numeric"></label>
-          <label class="field"><span>单位</span><select id="reminder-unit"><option value="minute">分钟</option><option value="hour">小时</option><option value="day">天</option></select></label>
-        </div>
-        <p class="field-help">开始时间不填时从当前时间开始；结束时间不填时使用任务节点。</p>
+        <div id="reminder-slots"></div>
+        <button type="button" class="text-button reminder-slot-add" id="add-reminder-slot">＋ 添加提醒时间段</button>
+        <p class="field-help">每个时间段可单独设置开始、结束和提醒间隔；开始时间不填时从当前时间开始，结束时间不填时使用任务节点。</p>
       </div>
       <label class="field"><span>备注 <em>可选</em></span><textarea id="task-notes" rows="3" maxlength="1000" placeholder="补充必要信息，不显示在主列表中"></textarea></label>
       <label class="check-row"><input type="checkbox" id="task-pinned"><span>置顶这项任务</span></label>

@@ -62,21 +62,16 @@ final class AlarmScheduler {
                 if (occurrenceAt <= StateStore.deliveredAt(context, id)) continue;
                 trigger = catchUpOrFuture(occurrenceAt);
             } else if ("interval".equals(mode)) {
-                intervalMs = intervalMillis(reminder);
-                long start = parseTime(reminder.optString("start"));
-                if (start == 0) start = System.currentTimeMillis();
-                endAt = parseTime(reminder.optString("end"));
-                if (endAt == 0) endAt = parseTime(task.optString("node"));
-                occurrenceAt = nextUndeliveredOccurrence(
-                        start, intervalMs, StateStore.deliveredAt(context, id));
-                if (occurrenceAt > 0
-                        && occurrenceAt <= System.currentTimeMillis()
-                        && System.currentTimeMillis() - occurrenceAt > CATCH_UP_WINDOW_MS) {
-                    long now = System.currentTimeMillis();
-                    occurrenceAt += ((now - occurrenceAt) / intervalMs + 1) * intervalMs;
+                JSONArray slots = reminder.optJSONArray("slots");
+                if (slots == null || slots.length() == 0) {
+                    scheduleInterval(context, task, id, reminder, scheduled);
+                } else {
+                    for (int slotIndex = 0; slotIndex < slots.length(); slotIndex++) {
+                        JSONObject slot = slots.optJSONObject(slotIndex);
+                        if (slot != null) scheduleInterval(context, task, slotId(task, slotIndex), slot, scheduled);
+                    }
                 }
-                if (endAt > 0 && occurrenceAt > endAt) occurrenceAt = 0;
-                trigger = catchUpOrFuture(occurrenceAt);
+                continue;
             }
             if (trigger == 0) continue;
             try {
@@ -86,6 +81,30 @@ final class AlarmScheduler {
             } catch (RuntimeException ignored) {
                 // One malformed task must not prevent every other reminder from being registered.
             }
+        }
+    }
+
+    private static void scheduleInterval(Context context, JSONObject task, int id,
+                                         JSONObject slot, List<Integer> scheduled) {
+        long intervalMs = intervalMillis(slot);
+        long start = parseTime(slot.optString("start"));
+        if (start == 0) start = System.currentTimeMillis();
+        long endAt = parseTime(slot.optString("end"));
+        if (endAt == 0) endAt = parseTime(task.optString("node"));
+        long occurrenceAt = nextUndeliveredOccurrence(start, intervalMs, StateStore.deliveredAt(context, id));
+        if (occurrenceAt > 0 && occurrenceAt <= System.currentTimeMillis()
+                && System.currentTimeMillis() - occurrenceAt > CATCH_UP_WINDOW_MS) {
+            long now = System.currentTimeMillis();
+            occurrenceAt += ((now - occurrenceAt) / intervalMs + 1) * intervalMs;
+        }
+        if (endAt > 0 && occurrenceAt > endAt) occurrenceAt = 0;
+        long trigger = catchUpOrFuture(occurrenceAt);
+        if (trigger == 0) return;
+        try {
+            schedule(context, id, task.optString("name", "清单任务"), trigger, occurrenceAt, intervalMs, endAt);
+            scheduled.add(id);
+        } catch (RuntimeException ignored) {
+            // One malformed slot must not prevent every other reminder from being registered.
         }
     }
 
@@ -144,6 +163,12 @@ final class AlarmScheduler {
         if ("day".equals(unit)) return amount * 86_400_000L;
         if ("hour".equals(unit)) return amount * 3_600_000L;
         return amount * 60_000L;
+    }
+
+    private static int slotId(JSONObject task, int slotIndex) {
+        String taskId = task.optString("id", task.optString("name"));
+        if (slotIndex == 0) return taskId.hashCode() & 0x7fffffff;
+        return (taskId + "|slot|" + slotIndex).hashCode() & 0x7fffffff;
     }
 
     private static long nextUndeliveredOccurrence(long start, long interval, long deliveredAt) {

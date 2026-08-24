@@ -54,10 +54,10 @@ export function collectProjectTasks(projects) {
 export function sortTasks(tasks) {
   return [...tasks].sort((a, b) => {
     if (Boolean(a.pinned) !== Boolean(b.pinned)) return a.pinned ? -1 : 1;
+    if ((a.order ?? 0) !== (b.order ?? 0)) return (a.order ?? 0) - (b.order ?? 0);
     const aTime = a.node ? new Date(a.node).getTime() : Infinity;
     const bTime = b.node ? new Date(b.node).getTime() : Infinity;
-    if (aTime !== bTime) return aTime - bTime;
-    return (a.order ?? 0) - (b.order ?? 0);
+    return aTime - bTime;
   });
 }
 

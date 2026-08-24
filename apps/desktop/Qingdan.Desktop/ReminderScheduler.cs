@@ -91,25 +91,45 @@ internal sealed class ReminderScheduler
         }
         else if (mode == "interval")
         {
-            var start = ParseDate(GetString(reminder, "start"));
-            var end = ParseDate(GetString(reminder, "end")) ?? ParseDate(GetString(task, "node"));
-            if (start is null || end is null || end < start || now < start) return;
-            var interval = Math.Max(1, GetInt(reminder, "interval", 30));
-            var unit = GetString(reminder, "unit");
-            var span = unit switch
+            if (reminder.TryGetProperty("slots", out var slots) && slots.ValueKind == JsonValueKind.Array && slots.GetArrayLength() > 0)
             {
-                "hour" => TimeSpan.FromHours(interval),
-                "day" => TimeSpan.FromDays(interval),
-                _ => TimeSpan.FromMinutes(interval)
-            };
-            var elapsed = now - start.Value;
-            var steps = Math.Floor(elapsed.TotalSeconds / span.TotalSeconds);
-            due = start.Value.AddSeconds(steps * span.TotalSeconds);
-            if (due > end) return;
+                var slotIndex = 0;
+                foreach (var slot in slots.EnumerateArray()) CheckIntervalSlot(task, projectId, now, slot, slotIndex++);
+                return;
+            }
+            CheckIntervalSlot(task, projectId, now, reminder, 0);
+            return;
         }
 
         if (due is null || due > now || now - due > TimeSpan.FromHours(24)) return;
         var occurrenceKey = $"{projectId}|{taskId}|{due.Value.Ticks}";
+        if (_handledOccurrences.Contains(occurrenceKey)) return;
+        _handledOccurrences.Add(occurrenceKey);
+        var signature = _taskSignatures.GetValueOrDefault(TaskKey(taskId, projectId), "");
+        ShowReminder(new ReminderInfo(taskId, projectId, name, ParseDate(GetString(task, "node")), occurrenceKey, signature));
+    }
+
+    private void CheckIntervalSlot(JsonElement task, string? projectId, DateTime now, JsonElement slot, int slotIndex)
+    {
+        var taskId = GetString(task, "id");
+        var name = GetString(task, "name");
+        var start = ParseDate(GetString(slot, "start"));
+        var end = ParseDate(GetString(slot, "end")) ?? ParseDate(GetString(task, "node"));
+        if (start is null || end is null || end < start || now < start) return;
+        var interval = Math.Max(1, GetInt(slot, "interval", 30));
+        var unit = GetString(slot, "unit");
+        var span = unit switch
+        {
+            "hour" => TimeSpan.FromHours(interval),
+            "day" => TimeSpan.FromDays(interval),
+            _ => TimeSpan.FromMinutes(interval)
+        };
+        var elapsed = now - start.Value;
+        var steps = Math.Floor(elapsed.TotalSeconds / span.TotalSeconds);
+        var due = start.Value.AddSeconds(steps * span.TotalSeconds);
+        if (due > end) return;
+        if (now - due > TimeSpan.FromHours(24)) return;
+        var occurrenceKey = $"{projectId}|{taskId}|{slotIndex}|{due.Ticks}";
         if (_handledOccurrences.Contains(occurrenceKey)) return;
         _handledOccurrences.Add(occurrenceKey);
         var signature = _taskSignatures.GetValueOrDefault(TaskKey(taskId, projectId), "");

@@ -7,7 +7,7 @@ const $ = selector => document.querySelector(selector);
 const $$ = selector => [...document.querySelectorAll(selector)];
 let state = loadState();
 let activeView = "todo";
-let reminderTimeTouched = { start: false, end: false };
+let reminderTimeTouched = [{ start: false, end: false }];
 const moduleStatus = { todo: "active", repeat: "active", projects: "active" };
 
 function updateFloatingAdd() {
@@ -62,7 +62,7 @@ function render() {
 function renderCounts() {
   $("#todo-count").textContent = state.tasks.filter(t => t.kind === "todo" && t.status === "active").length;
   $("#repeat-count").textContent = state.tasks.filter(t => t.kind === "repeat" && t.status === "active").length;
-  $("#project-count").textContent = flattenProjects(state.projects).length;
+  $("#project-count").textContent = state.projects.length;
   $("#todo-active-count").textContent = state.tasks.filter(t => t.kind === "todo" && t.status === "active").length;
   $("#todo-completed-count").textContent = state.tasks.filter(t => t.kind === "todo" && t.status === "completed").length;
   $("#todo-cancelled-count").textContent = state.tasks.filter(t => t.kind === "todo" && t.status === "cancelled").length;
@@ -96,7 +96,7 @@ function taskCard(task, context = "root", projectId = "") {
   if (task.node) meta.push(`<span class="${isOverdue(task.node) ? "overdue" : ""}">${isOverdue(task.node) ? "已过节点 · " : ""}${formatNode(task.node)}</span>`);
   const reminder = normalizeReminder(task.reminder);
   if (reminder.mode === "single") meta.push(`<span>单次提醒</span>`);
-  if (reminder.mode === "interval") meta.push(`<span>每 ${reminder.interval || 30} ${reminder.unit === "hour" ? "小时" : reminder.unit === "day" ? "天" : "分钟"}提醒</span>`);
+  if (reminder.mode === "interval") meta.push(`<span>循环提醒${reminder.slots?.length > 1 ? ` · ${reminder.slots.length} 个时间段` : ` · 每 ${reminder.interval || 30} ${reminder.unit === "hour" ? "小时" : reminder.unit === "day" ? "天" : "分钟"}`}</span>`);
   if (task.rule) meta.push(`<span>${escapeHtml(task.rule)}</span>`);
   return `<article class="task-card ${task.pinned ? "pinned" : ""}" data-id="${task.id}" data-context="${context}" data-project-id="${projectId}">
     <button class="complete-button" data-action="complete" title="完成" aria-label="完成任务"></button>
@@ -104,6 +104,8 @@ function taskCard(task, context = "root", projectId = "") {
     ${task.pinned ? '<span class="pin" title="已置顶">⌃</span>' : ""}
     <button class="more-button" data-action="menu" title="更多操作">•••</button>
     <div class="task-menu">
+      <button data-action="move-up">上移一项</button>
+      <button data-action="move-down">下移一项</button>
       <button data-action="postpone" data-preset="tomorrow">稍后：明天</button>
       <button data-action="postpone" data-preset="day-after">稍后：后天</button>
       <button data-action="postpone" data-preset="next-week">稍后：下周</button>
@@ -115,10 +117,52 @@ function taskCard(task, context = "root", projectId = "") {
 
 function normalizeReminder(reminder) {
   if (!reminder || reminder === "none") return { mode: "none" };
-  if (typeof reminder === "object") return { mode: reminder.mode || "none", ...reminder };
+  const normalizeSlot = slot => ({
+    start: slot?.start || "",
+    end: slot?.end || "",
+    interval: Math.max(1, Number(slot?.interval) || 30),
+    unit: slot?.unit || "minute"
+  });
+  if (typeof reminder === "object") {
+    const slots = Array.isArray(reminder.slots) && reminder.slots.length
+      ? reminder.slots.map(normalizeSlot)
+      : reminder.mode === "interval" ? [normalizeSlot(reminder)] : [];
+    return { mode: reminder.mode || "none", ...reminder, slots };
+  }
   if (reminder === "single") return { mode: "single", at: "" };
-  if (reminder === "30" || reminder === "60") return { mode: "interval", start: "", end: "", interval: Number(reminder), unit: "minute" };
+  if (reminder === "30" || reminder === "60") {
+    const slot = { start: "", end: "", interval: Number(reminder), unit: "minute" };
+    return { mode: "interval", ...slot, slots: [slot] };
+  }
   return { mode: "none" };
+}
+
+function renderReminderSlots(slots = []) {
+  const values = slots.length ? slots : [{ start: "", end: "", interval: 30, unit: "minute" }];
+  reminderTimeTouched = values.map(slot => ({ start: Boolean(slot.start), end: Boolean(slot.end) }));
+  $("#reminder-slots").innerHTML = values.map((slot, index) => {
+    const id = field => index === 0 ? `reminder-${field}` : `reminder-${field}-${index}`;
+    return `<div class="reminder-slot" data-slot-index="${index}">
+      <div class="reminder-slot-heading"><strong>时间段 ${index + 1}</strong>${index ? '<button type="button" class="text-button remove-reminder-slot" data-slot-index="' + index + '">删除</button>' : ""}</div>
+      <div class="two-columns">
+        <label class="field"><span>开始时间 <em>可选</em></span><input type="datetime-local" id="${id("start")}" data-field="start" value="${escapeHtml(slot.start || "")}"></label>
+        <label class="field"><span>结束时间 <em>可选</em></span><input type="datetime-local" id="${id("end")}" data-field="end" value="${escapeHtml(slot.end || "")}"></label>
+      </div>
+      <div class="interval-row">
+        <label class="field"><span>提醒间隔</span><input type="number" id="${id("interval")}" data-field="interval" min="1" max="999" value="${Math.max(1, Number(slot.interval) || 30)}" inputmode="numeric"></label>
+        <label class="field"><span>单位</span><select id="${id("unit")}" data-field="unit"><option value="minute" ${slot.unit === "minute" ? "selected" : ""}>分钟</option><option value="hour" ${slot.unit === "hour" ? "selected" : ""}>小时</option><option value="day" ${slot.unit === "day" ? "selected" : ""}>天</option></select></label>
+      </div>
+    </div>`;
+  }).join("");
+}
+
+function readReminderSlots() {
+  return $$("#reminder-slots .reminder-slot").map(slot => ({
+    start: slot.querySelector('[data-field="start"]').value,
+    end: slot.querySelector('[data-field="end"]').value,
+    interval: Math.max(1, Number(slot.querySelector('[data-field="interval"]').value) || 30),
+    unit: slot.querySelector('[data-field="unit"]').value
+  }));
 }
 
 function updateReminderFields(mode) {
@@ -128,11 +172,12 @@ function updateReminderFields(mode) {
 }
 
 function applyReminderDefaults() {
-  const start = $("#reminder-start");
-  const end = $("#reminder-end");
+  const start = $("#reminder-slots [data-field=\"start\"]");
+  const end = $("#reminder-slots [data-field=\"end\"]");
   const node = $("#task-node").value;
-  if (!reminderTimeTouched.start && !start.value) start.value = toInputDate(new Date());
-  if (!reminderTimeTouched.end && node) end.value = node;
+  const touched = reminderTimeTouched[0] || { start: false, end: false };
+  if (!touched.start && !start.value) start.value = toInputDate(new Date());
+  if (!touched.end && node) end.value = node;
 }
 
 function renderTodos() {
@@ -181,7 +226,7 @@ function renderProjects() {
       <header><button class="project-toggle" data-action="toggle-project"><span class="chevron">⌄</span><span><strong>${escapeHtml(project.name)}</strong><small>${complete} / ${total} 已完成${children.length ? ` · ${children.length} 个子项目` : ""}</small></span></button><button class="more-button" data-action="project-menu">•••</button></header>
       <div class="progress-track"><i style="width:${percent}%"></i></div>
       <div class="project-body">${active.map(task => taskCard(task, "project", project.id)).join("")}${empty}${children.length ? `<div class="subprojects">${children.map(child => projectCard(child, depth + 1)).join("")}</div>` : ""}<div class="project-add-actions"><button class="add-project-task" data-project-id="${project.id}">＋ 添加任务</button><button class="add-subproject" data-parent-project-id="${project.id}">◇ 添加子项目</button></div></div>
-      <div class="project-menu"><button data-action="pin-project">${project.pinned ? "取消置顶" : "置顶项目"}</button><button data-action="rename-project">重命名</button><button class="danger" data-action="delete-project">删除项目</button></div>
+      <div class="project-menu"><button data-action="move-up">上移一项</button><button data-action="move-down">下移一项</button><button data-action="pin-project">${project.pinned ? "取消置顶" : "置顶项目"}</button><button data-action="rename-project">重命名</button><button class="danger" data-action="delete-project">删除项目</button></div>
     </section>`;
   };
   const projects = sortedProjects(state.projects);
@@ -211,13 +256,9 @@ function openTaskDialog(kind, task = null, projectId = "", priority = "normal") 
   $("#task-name").value = task?.name || "";
   $("#task-node").value = task?.node || "";
   const reminder = normalizeReminder(task?.reminder);
-  reminderTimeTouched = { start: Boolean(reminder.start), end: Boolean(reminder.end) };
+  renderReminderSlots(reminder.slots || []);
   $("#task-reminder").value = reminder.mode;
   $("#reminder-at").value = reminder.at || "";
-  $("#reminder-start").value = reminder.start || "";
-  $("#reminder-end").value = reminder.end || "";
-  $("#reminder-interval").value = reminder.interval || 30;
-  $("#reminder-unit").value = reminder.unit || "minute";
   updateReminderFields(reminder.mode);
   $("#task-notes").value = task?.notes || "";
   $("#task-pinned").checked = Boolean(task?.pinned);
@@ -238,6 +279,28 @@ function findTask(card) {
   return { task: state.tasks.find(t => t.id === id), project: null };
 }
 
+function taskOrderBucket(task, project) {
+  if (project) return sortTasks(project.tasks.filter(item => item.status === "active"));
+  if (task.kind === "repeat") return sortTasks(state.tasks.filter(item => item.kind === "repeat" && item.status === "active"));
+  return sortTasks(state.tasks.filter(item => item.kind === "todo" && item.priority === task.priority && item.status === "active"));
+}
+
+function moveItem(list, item, delta) {
+  const index = list.indexOf(item);
+  const target = index + delta;
+  if (index < 0 || target < 0 || target >= list.length) return false;
+  [list[index], list[target]] = [list[target], list[index]];
+  list.forEach((entry, order) => { entry.order = order; });
+  return true;
+}
+
+function moveProject(siblings, project, delta) {
+  const ordered = [...siblings].sort((a, b) => Number(b.pinned) - Number(a.pinned) || (a.order ?? 0) - (b.order ?? 0));
+  if (!moveItem(ordered, project, delta)) return false;
+  ordered.forEach((entry, order) => { entry.order = order; });
+  return true;
+}
+
 function handleTaskAction(event) {
   const button = event.target.closest("[data-action]");
   const card = event.target.closest(".task-card");
@@ -247,6 +310,12 @@ function handleTaskAction(event) {
   const action = button.dataset.action;
   if (action === "menu") { card.classList.toggle("menu-open"); return; }
   if (action === "edit") { openTaskDialog(task.kind || "todo", task, project?.id || ""); return; }
+  if (action === "move-up" || action === "move-down") {
+    const moved = moveItem(taskOrderBucket(task, project), task, action === "move-up" ? -1 : 1);
+    toast(moved ? (action === "move-up" ? "任务已上移" : "任务已下移") : (action === "move-up" ? "已经是最前面" : "已经是最后面"));
+    saveState();
+    return;
+  }
   if (action === "complete") {
     task.status = "completed"; task.completedAt = Date.now();
     toast(task.kind === "repeat" ? "已完成本次，重复计划仍然保留" : "任务已完成");
@@ -286,7 +355,11 @@ $("#task-form").addEventListener("submit", event => {
   const reminder = reminderMode === "single"
     ? { mode: "single", at: $("#reminder-at").value }
     : reminderMode === "interval"
-      ? { mode: "interval", start: $("#reminder-start").value, end: $("#reminder-end").value, interval: Math.max(1, Number($("#reminder-interval").value) || 30), unit: $("#reminder-unit").value }
+      ? (() => {
+        const slots = readReminderSlots();
+        const first = slots[0] || { start: "", end: "", interval: 30, unit: "minute" };
+        return { mode: "interval", ...first, slots };
+      })()
       : { mode: "none" };
   Object.assign(task, { name: $("#task-name").value.trim(), priority: $("input[name=priority]:checked").value, node: $("#task-node").value, reminder, notes: $("#task-notes").value.trim(), pinned: $("#task-pinned").checked });
   if (kind === "repeat") task.rule = $("#task-rule").value;
@@ -304,11 +377,25 @@ $("#project-form").addEventListener("submit", event => {
 });
 
 $("#task-reminder").addEventListener("change", event => updateReminderFields(event.target.value));
-$("#reminder-start").addEventListener("input", () => { reminderTimeTouched.start = true; });
-$("#reminder-end").addEventListener("input", () => { reminderTimeTouched.end = true; });
+$("#add-reminder-slot").addEventListener("click", () => {
+  renderReminderSlots([...readReminderSlots(), { start: "", end: "", interval: 30, unit: "minute" }]);
+});
+$("#reminder-slots").addEventListener("click", event => {
+  const remove = event.target.closest(".remove-reminder-slot");
+  if (!remove) return;
+  const slots = readReminderSlots();
+  slots.splice(Number(remove.dataset.slotIndex), 1);
+  renderReminderSlots(slots);
+});
+$("#reminder-slots").addEventListener("input", event => {
+  const field = event.target.dataset.field;
+  const slot = event.target.closest(".reminder-slot");
+  if (field && slot) reminderTimeTouched[Number(slot.dataset.slotIndex)][field] = true;
+});
 $("#task-node").addEventListener("input", event => {
-  if ($("#task-reminder").value === "interval" && !reminderTimeTouched.end) {
-    $("#reminder-end").value = event.target.value;
+  const end = $("#reminder-slots [data-field=\"end\"]");
+  if ($("#task-reminder").value === "interval" && end && !reminderTimeTouched[0]?.end) {
+    end.value = event.target.value;
   }
 });
 
@@ -366,6 +453,11 @@ document.addEventListener("click", event => {
     const action = projectAction.dataset.action;
     if (action === "toggle-project") projectCard.classList.toggle("collapsed");
     if (action === "project-menu") projectCard.classList.toggle("project-menu-open");
+    if (action === "move-up" || action === "move-down") {
+      const moved = moveProject(projectEntry.siblings, project, action === "move-up" ? -1 : 1);
+      toast(moved ? (action === "move-up" ? "项目已上移" : "项目已下移") : (action === "move-up" ? "已经是最前面" : "已经是最后面"));
+      saveState();
+    }
     if (action === "pin-project") { project.pinned = !project.pinned; saveState(); }
     if (action === "rename-project") { const name = prompt("新的项目名称", project.name); if (name?.trim()) { project.name = name.trim(); saveState(); } }
     if (action === "delete-project" && confirm(`确定删除“${project.name}”及其中全部任务和子项目吗？`)) { projectEntry.siblings.splice(projectEntry.siblings.indexOf(project), 1); saveState(); }

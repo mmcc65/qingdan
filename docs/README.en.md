@@ -4,7 +4,7 @@ Qingdan is a lightweight, local-first personal task manager with optional self-h
 
 The goal is practical: capture and edit tasks immediately while offline, keep control of your sync infrastructure, and preserve important reminders when the app is closed or the device restarts.
 
-The current version is `0.5.3 Beta`. See the [Chinese README](../README.md) for complete installation, self-hosting, development, privacy, and release instructions.
+The current version is `0.5.5 Beta`. See the [Chinese README](../README.md) for complete installation, self-hosting, development, privacy, and release instructions.
 
 [Download the latest release](https://github.com/mmcc65/qingdan/releases/latest) · [Architecture](ARCHITECTURE.md) · [Report an issue](https://github.com/mmcc65/qingdan/issues)
 
@@ -30,7 +30,7 @@ The current version is `0.5.3 Beta`. See the [Chinese README](../README.md) for 
 | Android/HarmonyOS | Native notifications, reboot recovery, a top-three-todos widget, exact-alarm permission helper, and signed APK updates |
 | Web/PWA | Responsive UI, offline application-shell cache, and a framework-free static HTTP deployment |
 
-The current `0.5.3` syncs one complete state document per user and resolves versions by timestamp. Fine-grained concurrent field merging is planned rather than claimed as a current capability. Browser/PWA use does not guarantee reminders after the browser closes; use a native client for reliable background reminders.
+The current `0.5.5` syncs one complete state document per user and resolves versions by timestamp. Fine-grained concurrent field merging is planned rather than claimed as a current capability. Browser/PWA use does not guarantee reminders after the browser closes; use a native client for reliable background reminders.
 
 ## User downloads
 
