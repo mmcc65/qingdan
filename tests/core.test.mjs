@@ -23,13 +23,13 @@ test("walks nested projects and their tasks", () => {
   assert.deepEqual(collectProjectTasks(projects).map(({ task }) => task.id), ["a", "b", "c"]);
 });
 
-test("sort order is pinned, then node, then manual order", () => {
+test("sort order is pinned, then manual order, then node", () => {
   const tasks = [
     { id: "late", pinned: false, node: "2026-08-14T10:00", order: 0 },
     { id: "pin", pinned: true, node: "", order: 2 },
-    { id: "early", pinned: false, node: "2026-08-13T10:00", order: 9 }
+    { id: "early", pinned: false, node: "2026-08-13T10:00", order: 1 }
   ];
-  assert.deepEqual(sortTasks(tasks).map(t => t.id), ["pin", "early", "late"]);
+  assert.deepEqual(sortTasks(tasks).map(t => t.id), ["pin", "late", "early"]);
 });
 
 test("postpone presets produce expected days", () => {
