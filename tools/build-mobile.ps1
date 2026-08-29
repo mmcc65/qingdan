@@ -51,7 +51,7 @@ if (Test-Path -LiteralPath $signingProperties) {
         versionName = $versionName
         apkUrl = 'Qingdan-mobile-release.apk'
         sha256 = $releaseHash
-        notes = '项目可独立完成并查看详情；完成的小任务留在所属项目内，可按需展开。'
+        notes = '桌面小组件缩小为紧凑 2×2 尺寸，并升级为圆角卡片样式。'
     } | ConvertTo-Json
     $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
     [System.IO.File]::WriteAllText((Join-Path $outputDir 'latest.json'), $releaseManifest, $utf8NoBom)
