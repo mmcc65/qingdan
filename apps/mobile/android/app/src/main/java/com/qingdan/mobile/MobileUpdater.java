@@ -54,7 +54,7 @@ final class MobileUpdater {
         if (!BUSY.compareAndSet(false, true)) return;
         EXECUTOR.execute(() -> {
             try {
-                UpdateInfo update = fetchFirstManifest(manifestUrls);
+                UpdateInfo update = fetchLatestManifest(manifestUrls);
                 preferences.edit().putLong(LAST_CHECK, now).apply();
                 long installed = installedVersionCode(activity);
                 activity.runOnUiThread(() -> {
@@ -94,16 +94,19 @@ final class MobileUpdater {
         } catch (Exception ignored) { }
     }
 
-    private static UpdateInfo fetchFirstManifest(List<String> manifestUrls) throws Exception {
+    private static UpdateInfo fetchLatestManifest(List<String> manifestUrls) throws Exception {
         Exception lastError = null;
+        UpdateInfo latest = null;
         for (String manifestUrl : manifestUrls) {
             try {
-                return fetchManifest(manifestUrl);
+                UpdateInfo candidate = fetchManifest(manifestUrl);
+                if (latest == null || candidate.versionCode > latest.versionCode) latest = candidate;
             } catch (Exception error) {
                 lastError = error;
                 Log.w(LOG_TAG, "Update channel failed: " + new URL(manifestUrl).getHost(), error);
             }
         }
+        if (latest != null) return latest;
         if (lastError != null) throw lastError;
         throw new IOException("No update manifest channel is available");
     }
