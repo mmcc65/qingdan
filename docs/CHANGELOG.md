@@ -2,6 +2,18 @@
 
 本项目从公开预览版开始遵循语义化版本号。
 
+## [0.6.2] - 2026-08-29
+
+### 修复
+
+- 使用 Android 官方 2×2 组件尺寸的 dp 回退值，兼容不采用 `targetCellHeight` 的桌面启动器
+- 旧组件需移除后重新添加，桌面才会读取新的尺寸规格
+
+### 发布
+
+- Android/HarmonyOS `versionCode` 提升至 13
+- 同步发布 Windows、Android/HarmonyOS 安装包和应用内更新清单
+
 ## [0.6.1] - 2026-08-29
 
 ### 改进
@@ -104,6 +116,7 @@
 [0.5.5]: https://github.com/mmcc65/qingdan/releases/tag/v0.5.5
 [0.6.0]: https://github.com/mmcc65/qingdan/releases/tag/v0.6.0
 [0.6.1]: https://github.com/mmcc65/qingdan/releases/tag/v0.6.1
+[0.6.2]: https://github.com/mmcc65/qingdan/releases/tag/v0.6.2
 [0.5.3]: https://github.com/mmcc65/qingdan/releases/tag/v0.5.3
 [0.5.2]: https://github.com/mmcc65/qingdan/releases/tag/v0.5.2
 [0.5.1]: https://github.com/mmcc65/qingdan/releases/tag/v0.5.1

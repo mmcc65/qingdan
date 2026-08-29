@@ -25,7 +25,7 @@ Compress-Archive -Path (Join-Path $staging '*') -DestinationPath $archive -Compr
 $hash = (Get-FileHash -LiteralPath $archive -Algorithm SHA256).Hash.ToLower()
 $projectText = Get-Content -LiteralPath $project -Raw
 $version = [regex]::Match($projectText, '<Version>([^<]+)</Version>').Groups[1].Value
-$notes = '桌面小组件缩小为紧凑 2×2 尺寸，并升级为圆角卡片样式。'
+$notes = '修复部分桌面启动器未采用 2×2 组件尺寸的问题，并保留圆角卡片样式。'
 $manifest = [ordered]@{
     version = $version
     packageUrl = 'Qingdan-desktop-release.zip'
