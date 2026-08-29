@@ -31,7 +31,7 @@ public final class QingdanWidget extends AppWidgetProvider {
         RemoteViews views = new RemoteViews(context.getPackageName(), R.layout.qingdan_widget);
         List<JSONObject> tasks = activeTodos(context);
         views.setTextViewText(R.id.widget_title, "清单 · 待办 " + tasks.size());
-        int[] fields = {R.id.widget_task_1, R.id.widget_task_2, R.id.widget_task_3};
+        int[] fields = {R.id.widget_task_1, R.id.widget_task_2};
         for (int i = 0; i < fields.length; i++) {
             String text = i < tasks.size() ? dot(tasks.get(i)) + "  " + tasks.get(i).optString("name") : (i == 0 ? "暂时没有待办" : "");
             views.setTextViewText(fields[i], text);

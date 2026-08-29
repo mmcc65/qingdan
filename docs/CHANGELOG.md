@@ -2,6 +2,18 @@
 
 本项目从公开预览版开始遵循语义化版本号。
 
+## [0.6.1] - 2026-08-29
+
+### 改进
+
+- Android/HarmonyOS 桌面小组件最小尺寸缩小为 2×2，并采用更紧凑的两条待办布局
+- 小组件背景改为圆角卡片，改善桌面视觉融合度
+
+### 发布
+
+- Android/HarmonyOS `versionCode` 提升至 12
+- 同步发布 Windows、Android/HarmonyOS 安装包和应用内更新清单
+
 ## [0.6.0] - 2026-08-29
 
 ### 改进
@@ -91,6 +103,7 @@
 
 [0.5.5]: https://github.com/mmcc65/qingdan/releases/tag/v0.5.5
 [0.6.0]: https://github.com/mmcc65/qingdan/releases/tag/v0.6.0
+[0.6.1]: https://github.com/mmcc65/qingdan/releases/tag/v0.6.1
 [0.5.3]: https://github.com/mmcc65/qingdan/releases/tag/v0.5.3
 [0.5.2]: https://github.com/mmcc65/qingdan/releases/tag/v0.5.2
 [0.5.1]: https://github.com/mmcc65/qingdan/releases/tag/v0.5.1
