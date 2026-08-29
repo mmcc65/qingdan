@@ -2,6 +2,20 @@
 
 本项目从公开预览版开始遵循语义化版本号。
 
+## [0.6.0] - 2026-08-29
+
+### 改进
+
+- 项目拥有独立的完成状态，可直接完成大项目而不改变其子项目和任务的状态
+- 点击项目名称可进入项目详情，查看该项目及其子项目的完整内容
+- 项目频道的“进行中 / 已完成 / 已取消”只统计和展示顶层大项目
+- 已完成的小任务保留在所属项目或子项目底部，默认收起，可按需展开查看和恢复
+
+### 发布
+
+- Android/HarmonyOS `versionCode` 提升至 11
+- 同步发布 Windows、Android/HarmonyOS 安装包和应用内更新清单
+
 ## [0.5.5] - 2026-08-24
 
 ### 修复
@@ -76,6 +90,7 @@
 - 首次 GitHub Release 创建前，应用内更新地址会返回 404
 
 [0.5.5]: https://github.com/mmcc65/qingdan/releases/tag/v0.5.5
+[0.6.0]: https://github.com/mmcc65/qingdan/releases/tag/v0.6.0
 [0.5.3]: https://github.com/mmcc65/qingdan/releases/tag/v0.5.3
 [0.5.2]: https://github.com/mmcc65/qingdan/releases/tag/v0.5.2
 [0.5.1]: https://github.com/mmcc65/qingdan/releases/tag/v0.5.1

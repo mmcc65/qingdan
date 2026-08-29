@@ -14,6 +14,7 @@ test("normalizes invalid persisted data", () => {
   assert.ok(normalizeState(null).tasks.length);
   assert.deepEqual(normalizeState({ tasks: [], projects: [] }).history, []);
   assert.deepEqual(normalizeState({ tasks: [], projects: [{ id: "old", tasks: [] }] }).projects[0].projects, []);
+  assert.equal(normalizeState({ tasks: [], projects: [{ id: "old", tasks: [] }] }).projects[0].status, "active");
 });
 
 test("walks nested projects and their tasks", () => {

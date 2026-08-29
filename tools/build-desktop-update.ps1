@@ -1,6 +1,8 @@
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
 $project = Join-Path $root 'apps\desktop\Qingdan.Desktop\Qingdan.Desktop.csproj'
+$bundledDotnet = Join-Path $root '.toolchains\dotnet8\dotnet.exe'
+$dotnet = if (Test-Path -LiteralPath $bundledDotnet) { $bundledDotnet } else { 'dotnet' }
 $output = Join-Path $root 'apps\desktop\output'
 $staging = Join-Path $output 'package'
 $archive = Join-Path $output 'Qingdan-desktop-release.zip'
@@ -10,7 +12,7 @@ if (Test-Path -LiteralPath $staging) { Remove-Item -LiteralPath $staging -Recurs
 New-Item -ItemType Directory -Force -Path $staging | Out-Null
 
 Write-Host 'Building Qingdan desktop update package...'
-& dotnet publish $project -c Release --no-restore -r win-x64 --self-contained true -o $staging
+& $dotnet publish $project -c Release --no-restore -r win-x64 --self-contained true -o $staging
 if ($LASTEXITCODE -ne 0) { throw 'Desktop update build failed.' }
 
 $launcherName = [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('5ZCv5Yqo5riF5Y2VLnZicw=='))
@@ -23,7 +25,7 @@ Compress-Archive -Path (Join-Path $staging '*') -DestinationPath $archive -Compr
 $hash = (Get-FileHash -LiteralPath $archive -Algorithm SHA256).Hash.ToLower()
 $projectText = Get-Content -LiteralPath $project -Raw
 $version = [regex]::Match($projectText, '<Version>([^<]+)</Version>').Groups[1].Value
-$notes = [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('5L+u5aSN6aG555uu5pWw6YeP57uf6K6h77yM5aKe5Yqg6aG555uu5ZKM5Lu75Yqh5omL5Yqo5o6S5bqP77yM5bm25pSv5oyB5aSa5Liq5b6q546v5o+Q6YaS5pe26Ze05q6144CC'))
+$notes = '项目可独立完成并查看详情；完成的小任务留在所属项目内，可按需展开。'
 $manifest = [ordered]@{
     version = $version
     packageUrl = 'Qingdan-desktop-release.zip'

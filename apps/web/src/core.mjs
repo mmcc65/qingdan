@@ -17,7 +17,7 @@ export function createInitialState() {
       { id: createId("task"), kind: "repeat", name: "整理本周工作", priority: "normal", node: "", reminder: "none", notes: "", pinned: false, status: "active", order: 0, rule: "每周", createdAt: Date.now() }
     ],
     history: [],
-    projects: [{ id: createId("project"), name: "示例项目", pinned: false, order: 0, tasks: [
+    projects: [{ id: createId("project"), name: "示例项目", pinned: false, status: "active", order: 0, tasks: [
       { id: createId("ptask"), name: "明确下一步", priority: "important", node: "", reminder: "none", notes: "", pinned: false, status: "active", order: 0, createdAt: Date.now() }
     ], projects: [] }]
   };
@@ -27,6 +27,7 @@ export function normalizeState(input) {
   if (!input || !Array.isArray(input.tasks) || !Array.isArray(input.projects)) return createInitialState();
   const normalizeProject = project => ({
     ...project,
+    status: ["active", "completed", "cancelled"].includes(project?.status) ? project.status : "active",
     tasks: Array.isArray(project?.tasks) ? project.tasks : [],
     projects: Array.isArray(project?.projects) ? project.projects.map(normalizeProject) : []
   });

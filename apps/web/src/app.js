@@ -7,6 +7,7 @@ const $ = selector => document.querySelector(selector);
 const $$ = selector => [...document.querySelectorAll(selector)];
 let state = loadState();
 let activeView = "todo";
+let activeProjectId = "";
 let reminderTimeTouched = [{ start: false, end: false }];
 const moduleStatus = { todo: "active", repeat: "active", projects: "active" };
 
@@ -62,17 +63,17 @@ function render() {
 function renderCounts() {
   $("#todo-count").textContent = state.tasks.filter(t => t.kind === "todo" && t.status === "active").length;
   $("#repeat-count").textContent = state.tasks.filter(t => t.kind === "repeat" && t.status === "active").length;
-  $("#project-count").textContent = state.projects.length;
+  const rootProjects = state.projects;
+  $("#project-count").textContent = rootProjects.filter(project => project.status === "active").length;
   $("#todo-active-count").textContent = state.tasks.filter(t => t.kind === "todo" && t.status === "active").length;
   $("#todo-completed-count").textContent = state.tasks.filter(t => t.kind === "todo" && t.status === "completed").length;
   $("#todo-cancelled-count").textContent = state.tasks.filter(t => t.kind === "todo" && t.status === "cancelled").length;
   $("#repeat-active-count").textContent = state.tasks.filter(t => t.kind === "repeat" && t.status === "active").length;
   $("#repeat-completed-count").textContent = state.history.filter(item => item.kind === "repeat" && item.status === "completed").length;
   $("#repeat-cancelled-count").textContent = state.history.filter(item => item.kind === "repeat" && item.status === "cancelled").length;
-  const projectTasks = collectProjectTasks(state.projects).map(({ task }) => task);
-  $("#project-active-count").textContent = projectTasks.filter(t => t.status === "active").length;
-  $("#project-completed-count").textContent = projectTasks.filter(t => t.status === "completed").length;
-  $("#project-cancelled-count").textContent = projectTasks.filter(t => t.status === "cancelled").length;
+  $("#project-active-count").textContent = rootProjects.filter(project => project.status === "active").length;
+  $("#project-completed-count").textContent = rootProjects.filter(project => project.status === "completed").length;
+  $("#project-cancelled-count").textContent = rootProjects.filter(project => project.status === "cancelled").length;
 }
 
 function archiveCard(item, options = {}) {
@@ -112,6 +113,15 @@ function taskCard(task, context = "root", projectId = "") {
       <button data-action="cancel">取消任务</button>
       <button data-action="delete" class="danger">删除记录</button>
     </div>
+  </article>`;
+}
+
+function completedProjectTaskCard(task, projectId) {
+  return `<article class="task-card completed-project-task" data-id="${task.id}" data-context="project" data-project-id="${projectId}">
+    <button class="complete-button" data-action="restore" title="恢复任务" aria-label="恢复任务">✓</button>
+    <button class="task-main" data-action="edit"><span class="task-name"><i class="dot ${task.priority}"></i>${escapeHtml(task.name)}</span><span class="task-meta"><span>已完成</span></span></button>
+    <button class="more-button" data-action="menu" title="更多操作">•••</button>
+    <div class="task-menu"><button data-action="restore">恢复任务</button><button data-action="cancel">取消任务</button><button data-action="delete" class="danger">删除记录</button></div>
   </article>`;
 }
 
@@ -208,8 +218,13 @@ function renderRepeats() {
 
 function renderProjects() {
   const status = moduleStatus.projects;
-  $("#projects-list").classList.toggle("hidden", status !== "active");
-  $("#projects-archive").classList.toggle("visible", status !== "active");
+  const selected = activeProjectId ? findProject(state.projects, activeProjectId)?.project : null;
+  if (activeProjectId && !selected) activeProjectId = "";
+  const showingDetail = Boolean(selected);
+  $("#projects-list").classList.toggle("hidden", status !== "active" && !showingDetail);
+  $("#projects-list").classList.toggle("project-detail-layout", showingDetail);
+  $("#projects-archive").classList.toggle("visible", status !== "active" && !showingDetail);
+  $$(".module-filter[data-module=projects] button").forEach(button => button.classList.toggle("active", button.dataset.status === status));
   const sortedProjects = projects => [...projects].sort((a, b) => Number(b.pinned) - Number(a.pinned) || (a.order ?? 0) - (b.order ?? 0));
   const projectTaskSummary = project => {
     const tasks = collectProjectTasks([project]).map(({ task }) => task);
@@ -218,21 +233,36 @@ function renderProjects() {
   };
   const projectCard = (project, depth = 0) => {
     const active = sortTasks(project.tasks.filter(task => task.status === "active"));
+    const completed = sortTasks(project.tasks.filter(task => task.status === "completed"));
     const children = sortedProjects(project.projects || []);
     const { total, complete } = projectTaskSummary(project);
     const percent = total ? Math.round(complete / total * 100) : 0;
     const empty = !active.length && !children.length ? '<p class="project-empty">这个项目还没有待处理任务或子项目</p>' : "";
-    return `<section class="project-card ${depth ? "subproject-card" : ""}" data-project-id="${project.id}">
-      <header><button class="project-toggle" data-action="toggle-project"><span class="chevron">⌄</span><span><strong>${escapeHtml(project.name)}</strong><small>${complete} / ${total} 已完成${children.length ? ` · ${children.length} 个子项目` : ""}</small></span></button><button class="more-button" data-action="project-menu">•••</button></header>
+    const completeAction = !depth && project.status === "active" ? `<button class="project-complete-button" data-action="complete-project" title="完成项目" aria-label="完成项目">✓</button>` : "";
+    const statusLabel = project.status === "completed" ? "项目已完成" : project.status === "cancelled" ? "项目已取消" : `${complete} / ${total} 已完成${children.length ? ` · ${children.length} 个子项目` : ""}`;
+    const completedTasks = completed.length ? `<div class="project-completed-section"><button class="text-button show-completed-button" data-action="toggle-completed-tasks">查看已完成任务（${completed.length}）</button><div class="completed-project-tasks">${completed.map(task => completedProjectTaskCard(task, project.id)).join("")}</div></div>` : "";
+    return `<section class="project-card ${depth ? "subproject-card" : ""} project-${project.status}" data-project-id="${project.id}">
+      <header><div class="project-header-main">${completeAction}<button class="project-open" data-action="open-project" title="查看项目全部内容"><strong>${escapeHtml(project.name)}</strong><small>${statusLabel}</small></button></div><div class="project-header-actions"><button class="project-toggle" data-action="toggle-project" title="展开或收起项目" aria-label="展开或收起项目"><span class="chevron">⌄</span></button><button class="more-button" data-action="project-menu">•••</button></div></header>
       <div class="progress-track"><i style="width:${percent}%"></i></div>
-      <div class="project-body">${active.map(task => taskCard(task, "project", project.id)).join("")}${empty}${children.length ? `<div class="subprojects">${children.map(child => projectCard(child, depth + 1)).join("")}</div>` : ""}<div class="project-add-actions"><button class="add-project-task" data-project-id="${project.id}">＋ 添加任务</button><button class="add-subproject" data-parent-project-id="${project.id}">◇ 添加子项目</button></div></div>
-      <div class="project-menu"><button data-action="move-up">上移一项</button><button data-action="move-down">下移一项</button><button data-action="pin-project">${project.pinned ? "取消置顶" : "置顶项目"}</button><button data-action="rename-project">重命名</button><button class="danger" data-action="delete-project">删除项目</button></div>
+      <div class="project-body">${active.map(task => taskCard(task, "project", project.id)).join("")}${completedTasks}${empty}${children.length ? `<div class="subprojects">${children.map(child => projectCard(child, depth + 1)).join("")}</div>` : ""}<div class="project-add-actions"><button class="add-project-task" data-project-id="${project.id}">＋ 添加任务</button><button class="add-subproject" data-parent-project-id="${project.id}">◇ 添加子项目</button></div></div>
+      <div class="project-menu"><button data-action="move-up">上移一项</button><button data-action="move-down">下移一项</button><button data-action="pin-project">${project.pinned ? "取消置顶" : "置顶项目"}</button><button data-action="rename-project">重命名</button>${!depth && project.status === "active" ? '<button data-action="complete-project">完成项目</button><button data-action="cancel-project">取消项目</button>' : !depth ? '<button data-action="restore-project">重新开启项目</button>' : ""}<button class="danger" data-action="delete-project">删除项目</button></div>
     </section>`;
   };
-  const projects = sortedProjects(state.projects);
-  $("#projects-list").innerHTML = projects.length ? projects.map(project => projectCard(project)).join("") : `<div class="large-empty"><span>◇</span><h3>还没有项目</h3><p>把有明确先后顺序的一组事情放在项目中。</p></div>`;
-  const archived = collectProjectTasks(state.projects).filter(({ task }) => task.status === status).sort((a, b) => (b.task.completedAt || b.task.cancelledAt || 0) - (a.task.completedAt || a.task.cancelledAt || 0));
-  $("#projects-archive").innerHTML = status === "active" ? "" : archived.length ? archived.map(({ task, project }) => archiveCard(task, { context: "project", projectId: project.id, label: project.name })).join("") : archiveEmpty(status);
+  const projectArchiveCard = project => {
+    const date = project.completedAt || project.cancelledAt;
+    const time = date ? new Date(date).toLocaleString("zh-CN", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit", hour12: false }) : "";
+    const label = project.status === "completed" ? "已完成项目" : "已取消项目";
+    return `<article class="project-archive-card" data-project-id="${project.id}"><button class="project-archive-main" data-action="open-project"><span class="archive-check">${project.status === "completed" ? "✓" : "×"}</span><span><strong>${escapeHtml(project.name)}</strong><small>${label}${time ? ` · ${time}` : ""}</small></span></button><button class="text-button" data-action="restore-project">重新开启</button></article>`;
+  };
+  if (showingDetail) {
+    $("#projects-list").innerHTML = `<section class="project-detail"><button class="text-button project-back" data-action="back-to-projects">← 返回项目列表</button><p class="eyebrow">项目详情</p>${projectCard(selected)}</section>`;
+  } else {
+    const projects = sortedProjects(state.projects.filter(project => project.status === status));
+    const emptyCopy = status === "active" ? ["还没有进行中的项目", "把有明确先后顺序的一组事情放在项目中。"] : status === "completed" ? ["还没有已完成项目", "完成项目后会保留在这里。"] : ["还没有已取消项目", "取消项目后会保留在这里。"];
+    $("#projects-list").innerHTML = projects.length ? projects.map(project => projectCard(project)).join("") : `<div class="large-empty"><span>◇</span><h3>${emptyCopy[0]}</h3><p>${emptyCopy[1]}</p></div>`;
+  }
+  const archived = sortedProjects(state.projects.filter(project => project.status === status));
+  $("#projects-archive").innerHTML = status === "active" || showingDetail ? "" : archived.length ? archived.map(projectArchiveCard).join("") : archiveEmpty(status);
 }
 
 function openProjectDialog(parentId = "") {
@@ -310,6 +340,14 @@ function handleTaskAction(event) {
   const action = button.dataset.action;
   if (action === "menu") { card.classList.toggle("menu-open"); return; }
   if (action === "edit") { openTaskDialog(task.kind || "todo", task, project?.id || ""); return; }
+  if (action === "restore") {
+    task.status = "active";
+    delete task.completedAt;
+    delete task.cancelledAt;
+    toast("任务已恢复");
+    saveState();
+    return;
+  }
   if (action === "move-up" || action === "move-down") {
     const moved = moveItem(taskOrderBucket(task, project), task, action === "move-up" ? -1 : 1);
     toast(moved ? (action === "move-up" ? "任务已上移" : "任务已下移") : (action === "move-up" ? "已经是最前面" : "已经是最后面"));
@@ -372,7 +410,7 @@ $("#project-form").addEventListener("submit", event => {
   const parentId = $("#project-parent-id").value;
   const parent = parentId ? findProject(state.projects, parentId)?.project : null;
   const container = parent ? parent.projects : state.projects;
-  container.push({ id: createId("project"), name: $("#project-name").value.trim(), pinned: false, order: container.length, tasks: [], projects: [] });
+  container.push({ id: createId("project"), name: $("#project-name").value.trim(), pinned: false, status: "active", order: container.length, tasks: [], projects: [] });
   $("#project-dialog").close(); $("#project-form").reset(); saveState(); toast("项目已创建");
 });
 
@@ -443,6 +481,7 @@ document.addEventListener("click", event => {
   }
   const close = event.target.closest("[data-close]");
   if (close) document.getElementById(close.dataset.close).close();
+  if (event.target.closest("[data-action=back-to-projects]")) { activeProjectId = ""; render(); return; }
 
   const projectCard = event.target.closest(".project-card");
   const projectAction = event.target.closest(".project-card [data-action]");
@@ -452,6 +491,16 @@ document.addEventListener("click", event => {
     if (!project || !projectEntry) return;
     const action = projectAction.dataset.action;
     if (action === "toggle-project") projectCard.classList.toggle("collapsed");
+    if (action === "toggle-completed-tasks") {
+      projectCard.classList.toggle("show-completed-tasks");
+      const toggle = projectCard.querySelector(".show-completed-button");
+      if (toggle) {
+        const count = project.tasks.filter(task => task.status === "completed").length;
+        toggle.textContent = projectCard.classList.contains("show-completed-tasks") ? `收起已完成任务（${count}）` : `查看已完成任务（${count}）`;
+      }
+    }
+    if (action === "open-project") { activeProjectId = project.id; render(); }
+    if (action === "back-to-projects") { activeProjectId = ""; render(); }
     if (action === "project-menu") projectCard.classList.toggle("project-menu-open");
     if (action === "move-up" || action === "move-down") {
       const moved = moveProject(projectEntry.siblings, project, action === "move-up" ? -1 : 1);
@@ -460,7 +509,50 @@ document.addEventListener("click", event => {
     }
     if (action === "pin-project") { project.pinned = !project.pinned; saveState(); }
     if (action === "rename-project") { const name = prompt("新的项目名称", project.name); if (name?.trim()) { project.name = name.trim(); saveState(); } }
+    if (action === "complete-project") {
+      project.status = "completed";
+      project.completedAt = Date.now();
+      delete project.cancelledAt;
+      activeProjectId = "";
+      moduleStatus.projects = "completed";
+      saveState();
+      toast("项目已完成；其中的子项目和任务状态保持不变");
+    }
+    if (action === "cancel-project") {
+      project.status = "cancelled";
+      project.cancelledAt = Date.now();
+      delete project.completedAt;
+      activeProjectId = "";
+      moduleStatus.projects = "cancelled";
+      saveState();
+      toast("项目已取消；其中的子项目和任务状态保持不变");
+    }
+    if (action === "restore-project") {
+      project.status = "active";
+      delete project.completedAt;
+      delete project.cancelledAt;
+      activeProjectId = "";
+      moduleStatus.projects = "active";
+      saveState();
+      toast("项目已重新开启");
+    }
     if (action === "delete-project" && confirm(`确定删除“${project.name}”及其中全部任务和子项目吗？`)) { projectEntry.siblings.splice(projectEntry.siblings.indexOf(project), 1); saveState(); }
+  }
+
+  const archivedProject = event.target.closest(".project-archive-card");
+  const archivedProjectAction = event.target.closest(".project-archive-card [data-action]");
+  if (archivedProject && archivedProjectAction) {
+    const project = findProject(state.projects, archivedProject.dataset.projectId)?.project;
+    if (!project) return;
+    if (archivedProjectAction.dataset.action === "open-project") { activeProjectId = project.id; render(); }
+    if (archivedProjectAction.dataset.action === "restore-project") {
+      project.status = "active";
+      delete project.completedAt;
+      delete project.cancelledAt;
+      moduleStatus.projects = "active";
+      saveState();
+      toast("项目已重新开启");
+    }
   }
 });
 
