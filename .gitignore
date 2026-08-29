@@ -18,3 +18,4 @@ apps/mobile/android/.gradle-user-home/
 /releases/
 apps/mobile/signing/private/
 apps/mobile/signing/*.zip
+/infra/supabase/private/

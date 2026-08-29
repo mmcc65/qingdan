@@ -1,5 +1,14 @@
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
+$credentialsFile = Join-Path $root 'infra\supabase\private\publish.env'
+
+if (Test-Path -LiteralPath $credentialsFile) {
+    Get-Content -LiteralPath $credentialsFile | ForEach-Object {
+        if ($_ -match '^\s*([^#=\s]+)\s*=\s*(.*?)\s*$') {
+            [Environment]::SetEnvironmentVariable($matches[1], $matches[2], 'Process')
+        }
+    }
+}
 
 & (Join-Path $PSScriptRoot 'build-mobile.ps1')
 & (Join-Path $PSScriptRoot 'build-desktop-update.ps1')
