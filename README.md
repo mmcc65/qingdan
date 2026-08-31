@@ -28,9 +28,23 @@
 | 在多台设备间使用 | 本地优先、离线可编辑；可选连接自己的 Supabase，通过账户同步并使用 RLS 隔离数据 |
 | 持续获得新版 | Windows 和 Android/HarmonyOS 均支持应用内检查更新，安装包附带 SHA-256 更新清单 |
 
-![清单桌面端](docs/images/qingdan-desktop.png)
+## 界面预览
 
-![清单手机端](docs/images/qingdan-mobile.png)
+### 待办：重要、普通、随后分栏
+
+![清单 v0.7.1 待办界面](docs/images/qingdan-v071-todo.png)
+
+### 项目：大项目、子项目和各层任务
+
+![清单 v0.7.1 项目与子项目界面](docs/images/qingdan-v071-project.png)
+
+### 日程：按日期查看当天行程和提醒
+
+![清单 v0.7.1 日程界面](docs/images/qingdan-v071-schedule.png)
+
+### 手机端：完整功能与移动端布局
+
+<p align="center"><img src="docs/images/qingdan-v071-mobile.png" alt="清单 v0.7.1 手机界面" width="390"></p>
 
 ## 工作方式
 

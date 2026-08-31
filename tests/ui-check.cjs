@@ -41,14 +41,16 @@ const server = http.createServer((req, res) => {
     await desktop.fill("#schedule-date", today);
     await desktop.click("button[data-kind=schedule]");
     await desktop.fill("#task-name", "自动化日程");
-    await desktop.fill("#task-node", `${today}T14:30`);
+    await desktop.fill("#task-node", `${today}T23:30`);
     await desktop.selectOption("#task-reminder", "single");
     await desktop.click("#task-form button[type=submit]");
     const scheduleCard = desktop.locator("#schedule-list .task-card", { hasText: "自动化日程" });
     await scheduleCard.waitFor();
     const savedSchedule = await desktop.evaluate(() => JSON.parse(localStorage.getItem("qingdan.state.v1")).schedules.find(item => item.name === "自动化日程"));
-    if (!savedSchedule || savedSchedule.node !== `${today}T14:30` || savedSchedule.reminder.mode !== "single") throw new Error(`Schedule was not persisted: ${JSON.stringify(savedSchedule)}`);
+    if (!savedSchedule || savedSchedule.node !== `${today}T23:30` || savedSchedule.reminder.mode !== "single") throw new Error(`Schedule was not persisted: ${JSON.stringify(savedSchedule)}`);
     if (await desktop.locator("#schedule-count").textContent() !== "1") throw new Error("Schedule tab did not count today's active itinerary");
+    await desktop.evaluate(() => scrollTo(0, 0));
+    await desktop.screenshot({ path: path.join(output, "qingdan-schedule.png"), fullPage: true });
     await scheduleCard.locator("[data-action=complete]").click();
     await desktop.click(".module-filter[data-module=schedule] button[data-status=completed]");
     await desktop.locator("#schedule-archive .archive-card", { hasText: "自动化日程" }).waitFor();
