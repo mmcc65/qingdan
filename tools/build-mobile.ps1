@@ -51,7 +51,7 @@ if (Test-Path -LiteralPath $signingProperties) {
         versionName = $versionName
         apkUrl = 'Qingdan-mobile-release.apk'
         sha256 = $releaseHash
-        notes = '修复组件拉高后仍只显示三项待办的问题；模块顺序调整为待办、重复、项目、日程；日程顶部只统计今天，三种状态按所选日期过滤。'
+        notes = '日程新增总览，按日期集中显示今天及未来所有未完成行程；原有三个状态继续按所选日期显示。'
     } | ConvertTo-Json
     $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
     [System.IO.File]::WriteAllText((Join-Path $outputDir 'latest.json'), $releaseManifest, $utf8NoBom)

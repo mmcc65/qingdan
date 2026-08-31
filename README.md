@@ -10,7 +10,7 @@
 
 所有操作会先保存在本机，离线也能使用。需要跨设备时，可以连接自己的 Supabase 项目同步数据，不依赖作者托管的任务数据库。
 
-当前版本：`0.7.1 Beta`
+当前版本：`0.8.0 Beta`
 
 [下载 Windows 版](https://github.com/mmcc65/qingdan/releases/latest/download/Qingdan-desktop-release.zip) · [下载 Android/HarmonyOS 版](https://github.com/mmcc65/qingdan/releases/latest/download/Qingdan-mobile-release.apk) · [查看最新版说明](https://github.com/mmcc65/qingdan/releases/latest) · [反馈问题](https://github.com/mmcc65/qingdan/issues)
 
@@ -21,7 +21,7 @@
 | 随手记下一次性事项 | 按重要、普通、随后分栏；设置节点、备注、置顶和延期；完成与取消记录分开保留 |
 | 管理每天或每周重复的事情 | 每天、工作日、每周、每月、每两周等规则；完成本次或跳过本次，不影响后续计划 |
 | 推进复杂目标 | 建立大项目和多级子项目，在每层添加任务；项目可独立完成，不会强制改变内部任务状态 |
-| 安排当天行程 | 独立日程模块，按日期和时间查看行程；顶部只提示今天的数量，三个状态按所选日期展示 |
+| 安排当天及未来行程 | 日程总览按日期集中显示今天及未来未完成行程；顶部只提示今天的数量，三个状态按所选日期展示 |
 | 防止忘记重要事情 | 单次提醒或多时间段循环提醒；Windows 原生提醒窗口、Android 精确闹钟、重启后自动恢复 |
 | 不打开应用快速查看 | Android 圆角桌面组件最小 2×2，较高尺寸最多显示七项；点击打开应用或直接勾选完成 |
 | 找回和整理记录 | 全局搜索任务、日程、项目和备注；完成、取消、跳过记录可查看、恢复或永久删除 |
@@ -32,19 +32,19 @@
 
 ### 待办：重要、普通、随后分栏
 
-![清单 v0.7.1 待办界面](docs/images/qingdan-v071-todo.png)
+![清单 v0.8.0 待办界面](docs/images/qingdan-v080-todo.png)
 
 ### 项目：大项目、子项目和各层任务
 
-![清单 v0.7.1 项目与子项目界面](docs/images/qingdan-v071-project.png)
+![清单 v0.8.0 项目与子项目界面](docs/images/qingdan-v080-project.png)
 
 ### 日程：按日期查看当天行程和提醒
 
-![清单 v0.7.1 日程界面](docs/images/qingdan-v071-schedule.png)
+![清单 v0.8.0 日程总览界面](docs/images/qingdan-v080-schedule.png)
 
 ### 手机端：完整功能与移动端布局
 
-<p align="center"><img src="docs/images/qingdan-v071-mobile.png" alt="清单 v0.7.1 手机界面" width="390"></p>
+<p align="center"><img src="docs/images/qingdan-v080-mobile.png" alt="清单 v0.8.0 手机界面" width="390"></p>
 
 ## 工作方式
 
@@ -115,7 +115,8 @@
 
 日程是独立于待办、重复和项目的当日行程模块。
 
-- 使用日期选择器或前后一天按钮查看每天的安排，行程按开始时间排列。
+- “总览”按日期分组，集中显示今天及未来所有未完成行程。
+- 使用日期选择器或前后一天按钮查看某一天的安排，行程按开始时间排列。
 - 顶部“日程”角标始终只统计今天进行中的行程。
 - 日程页的行程、已完成、已取消数量和内容，只显示当前选择的日期。
 - 行程可完成、取消、恢复或删除，并支持单次提醒和多时间段循环提醒。
@@ -151,7 +152,7 @@
 - 登录后自动进行首次同步、延迟上传和 Realtime 变化订阅，也可手动“立即同步”。
 - 同步状态会显示尚未配置、等待登录、正在同步、已同步或连接异常。
 - Supabase Row Level Security 按登录账户隔离数据；应用拒绝把 Secret/service_role key 当作客户端密钥。
-- 当前 `0.7.1` 以每个用户的一份完整状态进行同步，较新的时间戳覆盖较旧状态；复杂的并发字段合并仍是后续工作。
+- 当前 `0.8.0` 以每个用户的一份完整状态进行同步，较新的时间戳覆盖较旧状态；复杂的并发字段合并仍是后续工作。
 
 ### 8. 数据与应用设置
 

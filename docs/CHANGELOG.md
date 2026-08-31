@@ -2,6 +2,23 @@
 
 本项目从公开预览版开始遵循语义化版本号。
 
+## [0.8.0] - 2026-08-31
+
+### 新功能
+
+- 日程新增“总览”，按日期分组显示今天及未来所有未完成行程
+- 总览中的行程可直接完成、编辑、延期、取消或删除
+
+### 保持不变
+
+- 顶部日程角标仍只统计今天进行中的行程
+- 行程、已完成、已取消三个状态仍只显示当前选择日期的数量和内容
+
+### 发布
+
+- Android/HarmonyOS `versionCode` 提升至 16
+- 同步发布 Windows、Android/HarmonyOS 安装包和应用内更新清单
+
 ## [0.7.1] - 2026-08-31
 
 ### 修复
@@ -154,6 +171,7 @@
 [0.6.2]: https://github.com/mmcc65/qingdan/releases/tag/v0.6.2
 [0.7.0]: https://github.com/mmcc65/qingdan/releases/tag/v0.7.0
 [0.7.1]: https://github.com/mmcc65/qingdan/releases/tag/v0.7.1
+[0.8.0]: https://github.com/mmcc65/qingdan/releases/tag/v0.8.0
 [0.5.3]: https://github.com/mmcc65/qingdan/releases/tag/v0.5.3
 [0.5.2]: https://github.com/mmcc65/qingdan/releases/tag/v0.5.2
 [0.5.1]: https://github.com/mmcc65/qingdan/releases/tag/v0.5.1

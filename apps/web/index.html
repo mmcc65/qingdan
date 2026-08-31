@@ -77,7 +77,7 @@
           <div><p class="eyebrow">当日行程</p><h1>日程</h1><p>按日期安排当天行程，并在需要时提前提醒。</p></div>
           <button class="primary-button add-button" data-kind="schedule"><span>＋</span> 添加日程</button>
         </div>
-        <div class="schedule-toolbar">
+        <div class="schedule-toolbar" id="schedule-toolbar">
           <button class="secondary-button compact-button" data-schedule-day="previous" aria-label="前一天">‹</button>
           <input type="date" id="schedule-date" aria-label="选择日程日期">
           <button class="secondary-button compact-button" data-schedule-day="next" aria-label="后一天">›</button>
@@ -85,7 +85,8 @@
           <strong id="schedule-day-label"></strong>
         </div>
         <div class="module-filter" data-module="schedule">
-          <button class="active" data-status="active">行程 <span id="schedule-active-count">0</span></button>
+          <button class="active" data-status="overview">总览 <span id="schedule-overview-count">0</span></button>
+          <button data-status="active">行程 <span id="schedule-active-count">0</span></button>
           <button data-status="completed">已完成 <span id="schedule-completed-count">0</span></button>
           <button data-status="cancelled">已取消 <span id="schedule-cancelled-count">0</span></button>
         </div>

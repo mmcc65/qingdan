@@ -10,7 +10,7 @@ let activeView = "todo";
 let activeProjectId = "";
 let scheduleDate = dateKey(new Date());
 let reminderTimeTouched = [{ start: false, end: false }];
-const moduleStatus = { todo: "active", repeat: "active", schedule: "active", projects: "active" };
+const moduleStatus = { todo: "active", repeat: "active", schedule: "overview", projects: "active" };
 
 restoreStateFromAndroid();
 
@@ -94,6 +94,7 @@ function renderCounts() {
   $("#repeat-active-count").textContent = state.tasks.filter(t => t.kind === "repeat" && t.status === "active").length;
   $("#repeat-completed-count").textContent = state.history.filter(item => item.kind === "repeat" && item.status === "completed").length;
   $("#repeat-cancelled-count").textContent = state.history.filter(item => item.kind === "repeat" && item.status === "cancelled").length;
+  $("#schedule-overview-count").textContent = state.schedules.filter(t => t.status === "active" && String(t.node || "").slice(0, 10) >= today).length;
   $("#schedule-active-count").textContent = state.schedules.filter(t => t.status === "active" && String(t.node || "").slice(0, 10) === scheduleDate).length;
   $("#schedule-completed-count").textContent = state.schedules.filter(t => t.status === "completed" && String(t.node || "").slice(0, 10) === scheduleDate).length;
   $("#schedule-cancelled-count").textContent = state.schedules.filter(t => t.status === "cancelled" && String(t.node || "").slice(0, 10) === scheduleDate).length;
@@ -247,11 +248,34 @@ function renderRepeats() {
 
 function renderSchedules() {
   const status = moduleStatus.schedule;
+  const overview = status === "overview";
   const selected = new Date(`${scheduleDate}T12:00:00`);
   $("#schedule-date").value = scheduleDate;
   $("#schedule-day-label").textContent = selected.toLocaleDateString("zh-CN", { month: "long", day: "numeric", weekday: "short" });
-  $("#schedule-list").classList.toggle("hidden", status !== "active");
-  $("#schedule-archive").classList.toggle("visible", status !== "active");
+  $("#schedule-list").classList.toggle("hidden", status !== "active" && !overview);
+  $("#schedule-archive").classList.toggle("visible", status === "completed" || status === "cancelled");
+  if (overview) {
+    const today = dateKey(new Date());
+    const upcoming = state.schedules
+      .filter(item => item.status === "active" && String(item.node || "").slice(0, 10) >= today)
+      .sort((a, b) => new Date(a.node).getTime() - new Date(b.node).getTime());
+    const groups = new Map();
+    upcoming.forEach(item => {
+      const day = String(item.node).slice(0, 10);
+      if (!groups.has(day)) groups.set(day, []);
+      groups.get(day).push(item);
+    });
+    $("#schedule-list").innerHTML = upcoming.length
+      ? `<div class="schedule-overview">${[...groups].map(([day, items]) => {
+        const date = new Date(`${day}T12:00:00`);
+        const label = day === today ? "今天" : date.toLocaleDateString("zh-CN", { month: "long", day: "numeric", weekday: "short" });
+        const fullDate = day === today ? date.toLocaleDateString("zh-CN", { month: "long", day: "numeric", weekday: "short" }) : day.replaceAll("-", "/");
+        return `<section class="schedule-day-group"><header><div><strong>${label}</strong><small>${fullDate}</small></div><span>${items.length}</span></header><div class="section-list">${items.map(task => taskCard(task, "schedule")).join("")}</div></section>`;
+      }).join("")}</div>`
+      : `<div class="large-empty"><span>览</span><h3>没有即将进行的日程</h3><p>今天及未来未完成的行程会集中显示在这里。</p><button class="primary-button add-button" data-kind="schedule">添加日程</button></div>`;
+    $("#schedule-archive").innerHTML = "";
+    return;
+  }
   const tasks = state.schedules
     .filter(item => item.status === "active" && String(item.node || "").slice(0, 10) === scheduleDate)
     .sort((a, b) => new Date(a.node).getTime() - new Date(b.node).getTime());
