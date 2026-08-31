@@ -1,8 +1,8 @@
 # Qingdan
 
-Qingdan is a lightweight, local-first personal task manager with optional self-hosted sync. It combines one shared task core with native Windows and Android capabilities, so the same data model and interface can still use system trays, exact alarms, reboot recovery, widgets, and application updates.
+Qingdan is a local-first personal task and schedule manager for Web, Windows, Android, and Android-compatible HarmonyOS devices. One-off todos, recurring work, nested projects, and daily itineraries have separate modules instead of sharing one flat list.
 
-The goal is practical: capture and edit tasks immediately while offline, keep control of your sync infrastructure, and preserve important reminders when the app is closed or the device restarts.
+Tasks can carry priorities, due nodes, notes, and single or interval reminders. Native Windows and Android layers provide system reminders, reboot recovery, application updates, and an interactive Android home-screen widget. Data is stored locally first; optional cross-device sync connects to a Supabase project controlled by the user.
 
 The current version is `0.7.1 Beta`. See the [Chinese README](../README.md) for complete installation, self-hosting, development, privacy, and release instructions.
 
@@ -22,8 +22,8 @@ The current version is `0.7.1 Beta`. See the [Chinese README](../README.md) for 
 | --- | --- |
 | Todos | Important/normal/later priorities, due nodes, notes, pinning, postponement, completion, cancellation, restore, and permanent deletion |
 | Recurring tasks | Daily, weekday, weekly, monthly, and biweekly rules with separate completion and skip history |
-| Schedule | A separate day itinerary with date navigation and optional single or interval reminders |
 | Projects | Nested projects, project tasks, aggregate progress, collapse, pin, rename, and per-project archives |
+| Schedule | A separate daily itinerary; the main badge counts today, while active/completed/cancelled views follow the selected date |
 | Reminders | Single or interval schedules; native Windows reminder windows; Android exact alarms, catch-up, and rescheduling after reboot or time changes |
 | Search and history | Search active task names, notes, and projects; separate completed/cancelled/skipped records |
 | Sync | Local-first storage, email authentication, optional user-owned Supabase, Realtime updates, manual sync, and RLS isolation |

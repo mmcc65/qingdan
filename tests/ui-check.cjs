@@ -177,6 +177,7 @@ const server = http.createServer((req, res) => {
     await floatingAdd.click();
     if (await mobile.locator("#project-dialog").evaluate(dialog => !dialog.open)) throw new Error("Mobile project add button did not open project dialog");
     await mobile.locator("#project-dialog .close-button").click();
+    await mobile.waitForTimeout(350);
     await mobile.screenshot({ path: path.join(output, "qingdan-mobile.png"), fullPage: true });
 
     const compact = await browser.newPage({ viewport: { width: 639, height: 700 }, deviceScaleFactor: 1 });
