@@ -2,6 +2,24 @@
 
 本项目从公开预览版开始遵循语义化版本号。
 
+## [0.9.0] - 2026-08-31
+
+### 新功能
+
+- 手机桌面组件的标题行新增左右切换按钮，可在待办、重复、项目、日程之间双向循环
+- 重复页可直接完成本次，项目页可直接结束整个项目，日程页可直接完成今天的行程
+
+### 改进
+
+- 分类标题位于两个等宽按钮之间，始终居中，不额外占用下方任务列表空间
+- 项目页只列出进行中的顶层大项目，日程页只列出今天进行中的行程
+- 每个桌面组件会独立记住当前显示的分类
+
+### 发布
+
+- Android/HarmonyOS `versionCode` 提升至 17
+- 同步发布 Windows、Android/HarmonyOS 安装包和应用内更新清单
+
 ## [0.8.0] - 2026-08-31
 
 ### 新功能
@@ -171,6 +189,7 @@
 [0.6.2]: https://github.com/mmcc65/qingdan/releases/tag/v0.6.2
 [0.7.0]: https://github.com/mmcc65/qingdan/releases/tag/v0.7.0
 [0.7.1]: https://github.com/mmcc65/qingdan/releases/tag/v0.7.1
+[0.9.0]: https://github.com/mmcc65/qingdan/releases/tag/v0.9.0
 [0.8.0]: https://github.com/mmcc65/qingdan/releases/tag/v0.8.0
 [0.5.3]: https://github.com/mmcc65/qingdan/releases/tag/v0.5.3
 [0.5.2]: https://github.com/mmcc65/qingdan/releases/tag/v0.5.2

@@ -4,7 +4,7 @@ Qingdan is a local-first personal task and schedule manager for Web, Windows, An
 
 Tasks can carry priorities, due nodes, notes, and single or interval reminders. Native Windows and Android layers provide system reminders, reboot recovery, application updates, and an interactive Android home-screen widget. Data is stored locally first; optional cross-device sync connects to a Supabase project controlled by the user.
 
-The current version is `0.8.0 Beta`. See the [Chinese README](../README.md) for complete installation, self-hosting, development, privacy, and release instructions.
+The current version is `0.9.0 Beta`. See the [Chinese README](../README.md) for complete installation, self-hosting, development, privacy, and release instructions.
 
 [Download the latest release](https://github.com/mmcc65/qingdan/releases/latest) · [Architecture](ARCHITECTURE.md) · [Report an issue](https://github.com/mmcc65/qingdan/issues)
 
@@ -28,10 +28,10 @@ The current version is `0.8.0 Beta`. See the [Chinese README](../README.md) for 
 | Search and history | Search active task names, notes, and projects; separate completed/cancelled/skipped records |
 | Sync | Local-first storage, email authentication, optional user-owned Supabase, Realtime updates, manual sync, and RLS isolation |
 | Windows | Resizable/always-on-top window, system tray, 10-minute snooze, stable shortcut, and in-app updates |
-| Android/HarmonyOS | Native notifications, reboot recovery, a resizable interactive widget showing up to seven todos, exact-alarm permission helper, and signed APK updates |
+| Android/HarmonyOS | Native notifications, reboot recovery, and a resizable interactive widget whose centered header cycles both ways through todos, recurring tasks, root projects, and today's schedule; exact-alarm permission helper and signed APK updates |
 | Web/PWA | Responsive UI, offline application-shell cache, and a framework-free static HTTP deployment |
 
-The current `0.8.0` syncs one complete state document per user and resolves versions by timestamp. Fine-grained concurrent field merging is planned rather than claimed as a current capability. Browser/PWA use does not guarantee reminders after the browser closes; use a native client for reliable background reminders.
+The current `0.9.0` syncs one complete state document per user and resolves versions by timestamp. Fine-grained concurrent field merging is planned rather than claimed as a current capability. Browser/PWA use does not guarantee reminders after the browser closes; use a native client for reliable background reminders.
 
 ## User downloads
 
