@@ -84,7 +84,8 @@ function render() {
 function renderCounts() {
   $("#todo-count").textContent = state.tasks.filter(t => t.kind === "todo" && t.status === "active").length;
   $("#repeat-count").textContent = state.tasks.filter(t => t.kind === "repeat" && t.status === "active").length;
-  $("#schedule-count").textContent = state.schedules.filter(t => t.status === "active").length;
+  const today = dateKey(new Date());
+  $("#schedule-count").textContent = state.schedules.filter(t => t.status === "active" && String(t.node || "").slice(0, 10) === today).length;
   const rootProjects = state.projects;
   $("#project-count").textContent = rootProjects.filter(project => project.status === "active").length;
   $("#todo-active-count").textContent = state.tasks.filter(t => t.kind === "todo" && t.status === "active").length;
@@ -93,9 +94,9 @@ function renderCounts() {
   $("#repeat-active-count").textContent = state.tasks.filter(t => t.kind === "repeat" && t.status === "active").length;
   $("#repeat-completed-count").textContent = state.history.filter(item => item.kind === "repeat" && item.status === "completed").length;
   $("#repeat-cancelled-count").textContent = state.history.filter(item => item.kind === "repeat" && item.status === "cancelled").length;
-  $("#schedule-active-count").textContent = state.schedules.filter(t => t.status === "active").length;
-  $("#schedule-completed-count").textContent = state.schedules.filter(t => t.status === "completed").length;
-  $("#schedule-cancelled-count").textContent = state.schedules.filter(t => t.status === "cancelled").length;
+  $("#schedule-active-count").textContent = state.schedules.filter(t => t.status === "active" && String(t.node || "").slice(0, 10) === scheduleDate).length;
+  $("#schedule-completed-count").textContent = state.schedules.filter(t => t.status === "completed" && String(t.node || "").slice(0, 10) === scheduleDate).length;
+  $("#schedule-cancelled-count").textContent = state.schedules.filter(t => t.status === "cancelled" && String(t.node || "").slice(0, 10) === scheduleDate).length;
   $("#project-active-count").textContent = rootProjects.filter(project => project.status === "active").length;
   $("#project-completed-count").textContent = rootProjects.filter(project => project.status === "completed").length;
   $("#project-cancelled-count").textContent = rootProjects.filter(project => project.status === "cancelled").length;
@@ -257,7 +258,9 @@ function renderSchedules() {
   $("#schedule-list").innerHTML = tasks.length
     ? `<div class="section-list">${tasks.map(task => taskCard(task, "schedule")).join("")}</div>`
     : `<div class="large-empty"><span>日</span><h3>当天还没有行程</h3><p>添加行程后，可选择单次或循环提醒。</p><button class="primary-button add-button" data-kind="schedule">添加日程</button></div>`;
-  const archived = state.schedules.filter(item => item.status === status).sort((a, b) => (b.completedAt || b.cancelledAt || 0) - (a.completedAt || a.cancelledAt || 0));
+  const archived = state.schedules
+    .filter(item => item.status === status && String(item.node || "").slice(0, 10) === scheduleDate)
+    .sort((a, b) => (b.completedAt || b.cancelledAt || 0) - (a.completedAt || a.cancelledAt || 0));
   $("#schedule-archive").innerHTML = status === "active" ? "" : archived.length ? archived.map(item => archiveCard(item, { context: "schedule", label: formatNode(item.node) })).join("") : archiveEmpty(status);
 }
 
@@ -515,6 +518,7 @@ document.addEventListener("click", event => {
     if (scheduleDay.dataset.scheduleDay === "previous") date.setDate(date.getDate() - 1);
     if (scheduleDay.dataset.scheduleDay === "next") date.setDate(date.getDate() + 1);
     scheduleDate = scheduleDay.dataset.scheduleDay === "today" ? dateKey(new Date()) : dateKey(date);
+    renderCounts();
     renderSchedules();
   }
   if (event.target.closest(".task-card")) handleTaskAction(event);
@@ -620,6 +624,7 @@ document.addEventListener("click", event => {
 $("#schedule-date").addEventListener("change", event => {
   if (event.target.value) {
     scheduleDate = event.target.value;
+    renderCounts();
     renderSchedules();
   }
 });

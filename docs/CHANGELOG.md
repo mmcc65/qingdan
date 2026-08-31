@@ -2,6 +2,23 @@
 
 本项目从公开预览版开始遵循语义化版本号。
 
+## [0.7.1] - 2026-08-31
+
+### 修复
+
+- 不再依赖桌面启动器上报的组件高度限制待办行数，解决组件拉高后仍只显示三项的问题
+- 组件始终提供最多七项待办，由实际桌面尺寸自然裁切
+
+### 改进
+
+- 主模块顺序调整为“待办、重复、项目、日程”
+- 日程顶部角标只统计今天的进行中行程；日程页三个状态的数量和内容都只显示所选日期
+
+### 发布
+
+- Android/HarmonyOS `versionCode` 提升至 15
+- 同步发布 Windows、Android/HarmonyOS 安装包和应用内更新清单
+
 ## [0.7.0] - 2026-08-31
 
 ### 新功能
@@ -136,6 +153,7 @@
 [0.6.1]: https://github.com/mmcc65/qingdan/releases/tag/v0.6.1
 [0.6.2]: https://github.com/mmcc65/qingdan/releases/tag/v0.6.2
 [0.7.0]: https://github.com/mmcc65/qingdan/releases/tag/v0.7.0
+[0.7.1]: https://github.com/mmcc65/qingdan/releases/tag/v0.7.1
 [0.5.3]: https://github.com/mmcc65/qingdan/releases/tag/v0.5.3
 [0.5.2]: https://github.com/mmcc65/qingdan/releases/tag/v0.5.2
 [0.5.1]: https://github.com/mmcc65/qingdan/releases/tag/v0.5.1

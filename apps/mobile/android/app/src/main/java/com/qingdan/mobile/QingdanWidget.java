@@ -55,20 +55,10 @@ public final class QingdanWidget extends AppWidgetProvider {
     }
 
     private static void update(Context context, AppWidgetManager manager, int id) {
-        Bundle options = manager.getAppWidgetOptions(id);
-        int height = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, 115);
-        manager.updateAppWidget(id, views(context, visibleRows(height)));
+        manager.updateAppWidget(id, views(context));
     }
 
-    private static int visibleRows(int height) {
-        if (height >= 225) return 7;
-        if (height >= 195) return 6;
-        if (height >= 165) return 5;
-        if (height >= 135) return 4;
-        return 3;
-    }
-
-    private static RemoteViews views(Context context, int capacity) {
+    private static RemoteViews views(Context context) {
         RemoteViews views = new RemoteViews(context.getPackageName(), R.layout.qingdan_widget);
         List<JSONObject> tasks = activeTodos(context);
         views.setTextViewText(R.id.widget_title, "清单 · 待办 " + tasks.size());
@@ -79,7 +69,7 @@ public final class QingdanWidget extends AppWidgetProvider {
         views.setOnClickPendingIntent(R.id.widget_root, open);
         views.setOnClickPendingIntent(R.id.widget_title, open);
         for (int i = 0; i < ROWS.length; i++) {
-            boolean shown = i < capacity && i < tasks.size();
+            boolean shown = i < tasks.size();
             views.setViewVisibility(ROWS[i], shown ? View.VISIBLE : View.GONE);
             if (!shown) continue;
             JSONObject task = tasks.get(i);

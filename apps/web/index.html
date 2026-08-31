@@ -20,8 +20,8 @@
       <nav class="tabs" aria-label="主要页面">
         <button class="tab active" data-view="todo">待办 <span id="todo-count">0</span></button>
         <button class="tab" data-view="repeat">重复 <span id="repeat-count">0</span></button>
-        <button class="tab" data-view="schedule">日程 <span id="schedule-count">0</span></button>
         <button class="tab" data-view="projects">项目 <span id="project-count">0</span></button>
+        <button class="tab" data-view="schedule">日程 <span id="schedule-count">0</span></button>
       </nav>
       <div class="top-actions">
         <button class="icon-button" id="search-button" title="搜索" aria-label="搜索">⌕</button>
@@ -58,6 +58,20 @@
         <div class="archive-panel" id="repeat-archive"></div>
       </section>
 
+      <section class="view" id="projects-view">
+        <div class="page-heading">
+          <div><p class="eyebrow">有序推进</p><h1>项目</h1><p>项目内部以你的流程顺序为主。</p></div>
+          <button class="primary-button" id="add-project"><span>＋</span> 新建项目</button>
+        </div>
+        <div class="module-filter" data-module="projects">
+          <button class="active" data-status="active">进行中 <span id="project-active-count">0</span></button>
+          <button data-status="completed">已完成项目 <span id="project-completed-count">0</span></button>
+          <button data-status="cancelled">已取消项目 <span id="project-cancelled-count">0</span></button>
+        </div>
+        <div class="projects-grid" id="projects-list"></div>
+        <div class="archive-panel" id="projects-archive"></div>
+      </section>
+
       <section class="view" id="schedule-view">
         <div class="page-heading">
           <div><p class="eyebrow">当日行程</p><h1>日程</h1><p>按日期安排当天行程，并在需要时提前提醒。</p></div>
@@ -77,20 +91,6 @@
         </div>
         <div class="content-panel" id="schedule-list"></div>
         <div class="archive-panel" id="schedule-archive"></div>
-      </section>
-
-      <section class="view" id="projects-view">
-        <div class="page-heading">
-          <div><p class="eyebrow">有序推进</p><h1>项目</h1><p>项目内部以你的流程顺序为主。</p></div>
-          <button class="primary-button" id="add-project"><span>＋</span> 新建项目</button>
-        </div>
-        <div class="module-filter" data-module="projects">
-          <button class="active" data-status="active">进行中 <span id="project-active-count">0</span></button>
-          <button data-status="completed">已完成项目 <span id="project-completed-count">0</span></button>
-          <button data-status="cancelled">已取消项目 <span id="project-cancelled-count">0</span></button>
-        </div>
-        <div class="projects-grid" id="projects-list"></div>
-        <div class="archive-panel" id="projects-archive"></div>
       </section>
     </main>
 
