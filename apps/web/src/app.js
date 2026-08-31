@@ -8,14 +8,17 @@ const $$ = selector => [...document.querySelectorAll(selector)];
 let state = loadState();
 let activeView = "todo";
 let activeProjectId = "";
+let scheduleDate = dateKey(new Date());
 let reminderTimeTouched = [{ start: false, end: false }];
-const moduleStatus = { todo: "active", repeat: "active", projects: "active" };
+const moduleStatus = { todo: "active", repeat: "active", schedule: "active", projects: "active" };
+
+restoreStateFromAndroid();
 
 function updateFloatingAdd() {
   const button = $("#floating-add");
   if (!button) return;
   const projectView = activeView === "projects";
-  const label = projectView ? "新建项目" : activeView === "repeat" ? "添加重复任务" : "添加待办";
+  const label = projectView ? "新建项目" : activeView === "repeat" ? "添加重复任务" : activeView === "schedule" ? "添加日程" : "添加待办";
   button.dataset.kind = projectView ? "" : activeView;
   button.dataset.action = projectView ? "add-project" : "add-task";
   button.setAttribute("aria-label", label);
@@ -25,6 +28,23 @@ function updateFloatingAdd() {
 function loadState() {
   try { return normalizeState(JSON.parse(localStorage.getItem(STORAGE_KEY))); }
   catch { return createInitialState(); }
+}
+
+function restoreStateFromAndroid() {
+  try {
+    const raw = window.QingdanAndroid?.getState?.();
+    if (!raw) return;
+    const nativeState = normalizeState(JSON.parse(raw));
+    if ((nativeState.cloudUpdatedAt || 0) > (state.cloudUpdatedAt || 0)) {
+      state = nativeState;
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    }
+  } catch { /* The web app also runs outside Android. */ }
+}
+
+function dateKey(date) {
+  const pad = value => String(value).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
 }
 
 function saveState(message = "已保存到本机") {
@@ -57,12 +77,14 @@ function render() {
   renderCounts();
   renderTodos();
   renderRepeats();
+  renderSchedules();
   renderProjects();
 }
 
 function renderCounts() {
   $("#todo-count").textContent = state.tasks.filter(t => t.kind === "todo" && t.status === "active").length;
   $("#repeat-count").textContent = state.tasks.filter(t => t.kind === "repeat" && t.status === "active").length;
+  $("#schedule-count").textContent = state.schedules.filter(t => t.status === "active").length;
   const rootProjects = state.projects;
   $("#project-count").textContent = rootProjects.filter(project => project.status === "active").length;
   $("#todo-active-count").textContent = state.tasks.filter(t => t.kind === "todo" && t.status === "active").length;
@@ -71,6 +93,9 @@ function renderCounts() {
   $("#repeat-active-count").textContent = state.tasks.filter(t => t.kind === "repeat" && t.status === "active").length;
   $("#repeat-completed-count").textContent = state.history.filter(item => item.kind === "repeat" && item.status === "completed").length;
   $("#repeat-cancelled-count").textContent = state.history.filter(item => item.kind === "repeat" && item.status === "cancelled").length;
+  $("#schedule-active-count").textContent = state.schedules.filter(t => t.status === "active").length;
+  $("#schedule-completed-count").textContent = state.schedules.filter(t => t.status === "completed").length;
+  $("#schedule-cancelled-count").textContent = state.schedules.filter(t => t.status === "cancelled").length;
   $("#project-active-count").textContent = rootProjects.filter(project => project.status === "active").length;
   $("#project-completed-count").textContent = rootProjects.filter(project => project.status === "completed").length;
   $("#project-cancelled-count").textContent = rootProjects.filter(project => project.status === "cancelled").length;
@@ -192,18 +217,21 @@ function applyReminderDefaults() {
 
 function renderTodos() {
   const status = moduleStatus.todo;
-  $("#todo-columns").classList.toggle("hidden", status !== "active");
-  $("#todo-archive").classList.toggle("visible", status !== "active");
-  const active = state.tasks.filter(t => t.kind === "todo" && t.status === "active");
+  const splitByPriority = status === "active" || status === "completed";
+  $("#todo-columns").classList.toggle("hidden", !splitByPriority);
+  $("#todo-archive").classList.toggle("visible", status === "cancelled");
+  const displayed = state.tasks.filter(t => t.kind === "todo" && t.status === status);
   $("#todo-columns").innerHTML = PRIORITIES.map(priority => {
-    const tasks = sortTasks(active.filter(t => t.priority === priority.id));
+    const tasks = status === "completed"
+      ? displayed.filter(t => t.priority === priority.id).sort((a, b) => (b.completedAt || 0) - (a.completedAt || 0))
+      : sortTasks(displayed.filter(t => t.priority === priority.id));
     return `<section class="priority-column">
       <header><div><i class="dot ${priority.id}"></i><strong>${priority.label}</strong><small>${priority.hint}</small></div><span>${tasks.length}</span></header>
-      <div class="task-list">${tasks.length ? tasks.map(t => taskCard(t)).join("") : `<div class="empty-state"><span>✓</span><p>这里暂时没有任务</p><button class="text-button add-inline" data-priority="${priority.id}">添加一项</button></div>`}</div>
+      <div class="task-list">${tasks.length ? tasks.map(t => status === "completed" ? archiveCard(t) : taskCard(t)).join("") : `<div class="empty-state"><span>✓</span><p>${status === "completed" ? "这里还没有完成记录" : "这里暂时没有任务"}</p>${status === "active" ? `<button class="text-button add-inline" data-priority="${priority.id}">添加一项</button>` : ""}</div>`}</div>
     </section>`;
   }).join("");
   const archived = state.tasks.filter(t => t.kind === "todo" && t.status === status).sort((a, b) => (b.completedAt || b.cancelledAt || 0) - (a.completedAt || a.cancelledAt || 0));
-  $("#todo-archive").innerHTML = status === "active" ? "" : archived.length ? archived.map(task => archiveCard(task)).join("") : archiveEmpty(status);
+  $("#todo-archive").innerHTML = status === "cancelled" ? (archived.length ? archived.map(task => archiveCard(task)).join("") : archiveEmpty(status)) : "";
 }
 
 function renderRepeats() {
@@ -214,6 +242,23 @@ function renderRepeats() {
   $("#repeat-list").innerHTML = tasks.length ? `<div class="section-list">${tasks.map(t => taskCard(t)).join("")}</div>` : `<div class="large-empty"><span>↻</span><h3>还没有重复任务</h3><p>把每周、每天都要做的事情放在这里。</p><button class="primary-button add-button" data-kind="repeat">添加第一项</button></div>`;
   const history = state.history.filter(item => item.kind === "repeat" && item.status === status).sort((a, b) => b.recordedAt - a.recordedAt);
   $("#repeat-archive").innerHTML = status === "active" ? "" : history.length ? history.map(item => archiveCard(item, { history: true, label: item.rule || "重复任务" })).join("") : archiveEmpty(status);
+}
+
+function renderSchedules() {
+  const status = moduleStatus.schedule;
+  const selected = new Date(`${scheduleDate}T12:00:00`);
+  $("#schedule-date").value = scheduleDate;
+  $("#schedule-day-label").textContent = selected.toLocaleDateString("zh-CN", { month: "long", day: "numeric", weekday: "short" });
+  $("#schedule-list").classList.toggle("hidden", status !== "active");
+  $("#schedule-archive").classList.toggle("visible", status !== "active");
+  const tasks = state.schedules
+    .filter(item => item.status === "active" && String(item.node || "").slice(0, 10) === scheduleDate)
+    .sort((a, b) => new Date(a.node).getTime() - new Date(b.node).getTime());
+  $("#schedule-list").innerHTML = tasks.length
+    ? `<div class="section-list">${tasks.map(task => taskCard(task, "schedule")).join("")}</div>`
+    : `<div class="large-empty"><span>日</span><h3>当天还没有行程</h3><p>添加行程后，可选择单次或循环提醒。</p><button class="primary-button add-button" data-kind="schedule">添加日程</button></div>`;
+  const archived = state.schedules.filter(item => item.status === status).sort((a, b) => (b.completedAt || b.cancelledAt || 0) - (a.completedAt || a.cancelledAt || 0));
+  $("#schedule-archive").innerHTML = status === "active" ? "" : archived.length ? archived.map(item => archiveCard(item, { context: "schedule", label: formatNode(item.node) })).join("") : archiveEmpty(status);
 }
 
 function renderProjects() {
@@ -277,14 +322,19 @@ function openProjectDialog(parentId = "") {
 
 function openTaskDialog(kind, task = null, projectId = "", priority = "normal") {
   const dialog = $("#task-dialog");
+  const isSchedule = kind === "schedule";
   $("#task-form").reset();
   $("#task-id").value = task?.id || "";
   $("#task-kind").value = kind;
   $("#task-project-id").value = projectId;
-  $("#dialog-kicker").textContent = task ? "编辑" : "新任务";
-  $("#dialog-title").textContent = kind === "repeat" ? "重复任务" : projectId ? "项目任务" : "添加待办";
+  $("#dialog-kicker").textContent = task ? "编辑" : isSchedule ? "新日程" : "新任务";
+  $("#dialog-title").textContent = kind === "repeat" ? "重复任务" : isSchedule ? "添加日程" : projectId ? "项目任务" : "添加待办";
+  $("#task-name-label").textContent = isSchedule ? "行程名称" : "任务名称";
+  $("#task-name").placeholder = isSchedule ? "当天准备做什么？" : "准备做什么？";
   $("#task-name").value = task?.name || "";
-  $("#task-node").value = task?.node || "";
+  $("#task-node-label").innerHTML = isSchedule ? "开始时间" : "节点 <em>可选</em>";
+  $("#task-node").required = isSchedule;
+  $("#task-node").value = task?.node || (isSchedule ? `${scheduleDate}T09:00` : "");
   const reminder = normalizeReminder(task?.reminder);
   renderReminderSlots(reminder.slots || []);
   $("#task-reminder").value = reminder.mode;
@@ -294,6 +344,7 @@ function openTaskDialog(kind, task = null, projectId = "", priority = "normal") 
   $("#task-pinned").checked = Boolean(task?.pinned);
   $("#task-rule").value = task?.rule || "每周";
   dialog.classList.toggle("is-repeat", kind === "repeat");
+  dialog.classList.toggle("is-schedule", isSchedule);
   const selectedPriority = task?.priority || priority;
   $$("input[name=priority]").forEach(input => input.checked = input.value === selectedPriority);
   dialog.showModal();
@@ -306,11 +357,13 @@ function findTask(card) {
     const project = findProject(state.projects, card.dataset.projectId)?.project;
     return { task: project?.tasks.find(t => t.id === id), project };
   }
+  if (card.dataset.context === "schedule") return { task: state.schedules.find(t => t.id === id), project: null };
   return { task: state.tasks.find(t => t.id === id), project: null };
 }
 
 function taskOrderBucket(task, project) {
   if (project) return sortTasks(project.tasks.filter(item => item.status === "active"));
+  if (task.kind === "schedule") return state.schedules.filter(item => item.status === "active").sort((a, b) => new Date(a.node).getTime() - new Date(b.node).getTime());
   if (task.kind === "repeat") return sortTasks(state.tasks.filter(item => item.kind === "repeat" && item.status === "active"));
   return sortTasks(state.tasks.filter(item => item.kind === "todo" && item.priority === task.priority && item.status === "active"));
 }
@@ -356,7 +409,7 @@ function handleTaskAction(event) {
   }
   if (action === "complete") {
     task.status = "completed"; task.completedAt = Date.now();
-    toast(task.kind === "repeat" ? "已完成本次，重复计划仍然保留" : "任务已完成");
+    toast(task.kind === "repeat" ? "已完成本次，重复计划仍然保留" : task.kind === "schedule" ? "日程已完成" : "任务已完成");
     if (task.kind === "repeat") {
       state.history.push({ id: createId("history"), sourceId: task.id, kind: "repeat", name: task.name, rule: task.rule, status: "completed", recordedAt: Date.now() });
       task.status = "active"; task.lastCompletedAt = Date.now();
@@ -369,7 +422,7 @@ function handleTaskAction(event) {
     toast(task.kind === "repeat" ? "已跳过本次" : "任务已取消");
   }
   if (action === "delete" && confirm(`确定删除“${task.name}”吗？删除后不保留记录。`)) {
-    const list = project ? project.tasks : state.tasks;
+    const list = project ? project.tasks : task.kind === "schedule" ? state.schedules : state.tasks;
     list.splice(list.indexOf(task), 1); toast("记录已删除");
   }
   saveState();
@@ -385,10 +438,10 @@ $("#task-form").addEventListener("submit", event => {
   const id = $("#task-id").value;
   const kind = $("#task-kind").value;
   const projectId = $("#task-project-id").value;
-  const container = projectId ? findProject(state.projects, projectId)?.project.tasks : state.tasks;
+  const container = projectId ? findProject(state.projects, projectId)?.project.tasks : kind === "schedule" ? state.schedules : state.tasks;
   if (!container) return;
   const existing = id ? container.find(t => t.id === id) : null;
-  const task = existing || { id: createId(projectId ? "ptask" : "task"), kind, status: "active", order: container.length, createdAt: Date.now() };
+  const task = existing || { id: createId(projectId ? "ptask" : kind === "schedule" ? "schedule" : "task"), kind, status: "active", order: container.length, createdAt: Date.now() };
   const reminderMode = $("#task-reminder").value;
   const reminder = reminderMode === "single"
     ? { mode: "single", at: $("#reminder-at").value }
@@ -399,10 +452,10 @@ $("#task-form").addEventListener("submit", event => {
         return { mode: "interval", ...first, slots };
       })()
       : { mode: "none" };
-  Object.assign(task, { name: $("#task-name").value.trim(), priority: $("input[name=priority]:checked").value, node: $("#task-node").value, reminder, notes: $("#task-notes").value.trim(), pinned: $("#task-pinned").checked });
+  Object.assign(task, { name: $("#task-name").value.trim(), priority: kind === "schedule" ? "normal" : $("input[name=priority]:checked").value, node: $("#task-node").value, reminder, notes: $("#task-notes").value.trim(), pinned: kind === "schedule" ? false : $("#task-pinned").checked });
   if (kind === "repeat") task.rule = $("#task-rule").value;
   if (!existing) container.push(task);
-  $("#task-dialog").close(); saveState(); toast(existing ? "修改已保存" : "任务已添加");
+  $("#task-dialog").close(); saveState(); toast(existing ? "修改已保存" : kind === "schedule" ? "日程已添加" : "任务已添加");
 });
 
 $("#project-form").addEventListener("submit", event => {
@@ -456,6 +509,14 @@ document.addEventListener("click", event => {
   if (projectTask) openTaskDialog("todo", null, projectTask.dataset.projectId);
   const subproject = event.target.closest(".add-subproject");
   if (subproject) openProjectDialog(subproject.dataset.parentProjectId);
+  const scheduleDay = event.target.closest("[data-schedule-day]");
+  if (scheduleDay) {
+    const date = new Date(`${scheduleDate}T12:00:00`);
+    if (scheduleDay.dataset.scheduleDay === "previous") date.setDate(date.getDate() - 1);
+    if (scheduleDay.dataset.scheduleDay === "next") date.setDate(date.getDate() + 1);
+    scheduleDate = scheduleDay.dataset.scheduleDay === "today" ? dateKey(new Date()) : dateKey(date);
+    renderSchedules();
+  }
   if (event.target.closest(".task-card")) handleTaskAction(event);
   if (event.target.closest("#add-project")) openProjectDialog();
   const filter = event.target.closest(".module-filter button");
@@ -472,7 +533,7 @@ document.addEventListener("click", event => {
       if (archiveAction.dataset.archiveAction === "delete" && confirm("确定永久删除这条历史记录吗？")) state.history = state.history.filter(item => item.id !== archive.dataset.id);
     } else {
       const project = archive.dataset.context === "project" ? findProject(state.projects, archive.dataset.projectId)?.project : null;
-      const list = project ? project.tasks : state.tasks;
+      const list = project ? project.tasks : archive.dataset.context === "schedule" ? state.schedules : state.tasks;
       const task = list.find(item => item.id === archive.dataset.id);
       if (task && archiveAction.dataset.archiveAction === "restore") { task.status = "active"; delete task.completedAt; delete task.cancelledAt; toast("任务已恢复"); }
       if (task && archiveAction.dataset.archiveAction === "delete" && confirm(`确定永久删除“${task.name}”吗？`)) list.splice(list.indexOf(task), 1);
@@ -556,11 +617,18 @@ document.addEventListener("click", event => {
   }
 });
 
+$("#schedule-date").addEventListener("change", event => {
+  if (event.target.value) {
+    scheduleDate = event.target.value;
+    renderSchedules();
+  }
+});
+
 $("#search-button").addEventListener("click", () => { $("#search-dialog").showModal(); setTimeout(() => $("#search-input").focus(), 30); });
 $("#search-input").addEventListener("input", event => {
   const results = searchState(state, event.target.value);
   $("#search-results").innerHTML = results.length ? results.map(result => {
-    const label = result.type === "project" ? "项目" : result.type === "repeat" ? "重复" : result.type === "project-task" ? result.project.name : "待办";
+    const label = result.type === "project" ? "项目" : result.type === "repeat" ? "重复" : result.type === "schedule" ? "日程" : result.type === "project-task" ? result.project.name : "待办";
     const name = result.project && !result.task ? result.project.name : result.task.name;
     return `<button class="search-result"><span>${escapeHtml(name)}</span><small>${escapeHtml(label)}</small></button>`;
   }).join("") : `<p class="empty-note">${event.target.value ? "没有找到相关内容" : "输入关键词开始搜索"}</p>`;
@@ -654,6 +722,8 @@ document.addEventListener("keydown", event => {
 });
 
 window.addEventListener("qingdan-native-resume", () => {
+  restoreStateFromAndroid();
+  render();
   syncNow().catch(() => {});
   syncDesktopState();
   checkAppUpdate();

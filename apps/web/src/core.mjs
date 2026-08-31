@@ -11,6 +11,7 @@ export function createInitialState() {
   const tomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 18, 0);
   return {
     version: 1,
+    schedules: [],
     tasks: [
       { id: createId("task"), kind: "todo", name: "试着添加一项自己的任务", priority: "important", node: toInputDate(tomorrow), reminder: "none", notes: "", pinned: true, status: "active", order: 0, createdAt: Date.now() },
       { id: createId("task"), kind: "todo", name: "点开任务查看详细设置", priority: "normal", node: "", reminder: "none", notes: "", pinned: false, status: "active", order: 1, createdAt: Date.now() },
@@ -31,7 +32,7 @@ export function normalizeState(input) {
     tasks: Array.isArray(project?.tasks) ? project.tasks : [],
     projects: Array.isArray(project?.projects) ? project.projects.map(normalizeProject) : []
   });
-  return { version: 1, tasks: input.tasks, projects: input.projects.map(normalizeProject), history: Array.isArray(input.history) ? input.history : [], cloudUpdatedAt: Number(input.cloudUpdatedAt) || 0 };
+  return { version: 1, schedules: Array.isArray(input.schedules) ? input.schedules : [], tasks: input.tasks, projects: input.projects.map(normalizeProject), history: Array.isArray(input.history) ? input.history : [], cloudUpdatedAt: Number(input.cloudUpdatedAt) || 0 };
 }
 
 export function flattenProjects(projects) {
@@ -99,6 +100,7 @@ export function searchState(state, query) {
   if (!needle) return [];
   const results = [];
   state.tasks.filter(t => t.status === "active" && `${t.name} ${t.notes || ""}`.toLocaleLowerCase("zh-CN").includes(needle)).forEach(task => results.push({ type: task.kind, task }));
+  (state.schedules || []).filter(t => t.status === "active" && `${t.name} ${t.notes || ""}`.toLocaleLowerCase("zh-CN").includes(needle)).forEach(task => results.push({ type: "schedule", task }));
   flattenProjects(state.projects).forEach(({ project }) => {
     if (project.name.toLocaleLowerCase("zh-CN").includes(needle)) results.push({ type: "project", project });
     project.tasks.filter(t => t.status === "active" && `${t.name} ${t.notes || ""}`.toLocaleLowerCase("zh-CN").includes(needle)).forEach(task => results.push({ type: "project-task", task, project }));

@@ -26,6 +26,7 @@ final class AlarmScheduler {
         try {
             JSONObject state = new JSONObject(json);
             scheduleArray(context, state.optJSONArray("tasks"), scheduled);
+            scheduleArray(context, state.optJSONArray("schedules"), scheduled);
             JSONArray projects = state.optJSONArray("projects");
             scheduleProjects(context, projects, scheduled);
         } catch (Exception ignored) {

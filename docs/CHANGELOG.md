@@ -2,6 +2,24 @@
 
 本项目从公开预览版开始遵循语义化版本号。
 
+## [0.7.0] - 2026-08-31
+
+### 新功能
+
+- 新增独立“日程”模块，可按日期查看当天行程，并使用单次或多时间段循环提醒
+- 手机桌面组件可直接勾选完成待办，点击标题、任务或组件空白区域可打开应用
+
+### 改进
+
+- 已完成待办按重要、普通、随后分栏展示
+- 组件根据实际高度显示更多待办，2×4 等较高尺寸最多显示七项
+- 组件直接完成的数据会在打开应用时与 Web 界面正确合并
+
+### 发布
+
+- Android/HarmonyOS `versionCode` 提升至 14
+- 同步发布 Windows、Android/HarmonyOS 安装包和应用内更新清单
+
 ## [0.6.2] - 2026-08-29
 
 ### 修复
@@ -117,6 +135,7 @@
 [0.6.0]: https://github.com/mmcc65/qingdan/releases/tag/v0.6.0
 [0.6.1]: https://github.com/mmcc65/qingdan/releases/tag/v0.6.1
 [0.6.2]: https://github.com/mmcc65/qingdan/releases/tag/v0.6.2
+[0.7.0]: https://github.com/mmcc65/qingdan/releases/tag/v0.7.0
 [0.5.3]: https://github.com/mmcc65/qingdan/releases/tag/v0.5.3
 [0.5.2]: https://github.com/mmcc65/qingdan/releases/tag/v0.5.2
 [0.5.1]: https://github.com/mmcc65/qingdan/releases/tag/v0.5.1

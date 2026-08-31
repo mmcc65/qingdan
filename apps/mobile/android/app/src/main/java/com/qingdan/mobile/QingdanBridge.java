@@ -20,6 +20,11 @@ public final class QingdanBridge {
     }
 
     @JavascriptInterface
+    public String getState() {
+        return StateStore.load(activity);
+    }
+
+    @JavascriptInterface
     public void testReminder() {
         NotificationHelper.show(activity, 900001, "清单提醒测试", "手机通知和横幅提醒工作正常");
     }

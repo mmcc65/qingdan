@@ -30,6 +30,17 @@ const server = http.createServer((req, res) => {
     await desktop.goto(`http://127.0.0.1:${port}`, { waitUntil: "networkidle" });
     await desktop.screenshot({ path: path.join(output, "qingdan-desktop.png"), fullPage: true });
     await desktop.click("button[data-view=repeat]");
+    await desktop.click("button[data-view=schedule]");
+    await desktop.fill("#schedule-date", "2026-08-31");
+    await desktop.click("button[data-kind=schedule]");
+    await desktop.fill("#task-name", "自动化日程");
+    await desktop.fill("#task-node", "2026-08-31T14:30");
+    await desktop.selectOption("#task-reminder", "single");
+    await desktop.click("#task-form button[type=submit]");
+    const scheduleCard = desktop.locator("#schedule-list .task-card", { hasText: "自动化日程" });
+    await scheduleCard.waitFor();
+    const savedSchedule = await desktop.evaluate(() => JSON.parse(localStorage.getItem("qingdan.state.v1")).schedules.find(item => item.name === "自动化日程"));
+    if (!savedSchedule || savedSchedule.node !== "2026-08-31T14:30" || savedSchedule.reminder.mode !== "single") throw new Error(`Schedule was not persisted: ${JSON.stringify(savedSchedule)}`);
     await desktop.click("button[data-view=projects]");
     const rootProject = desktop.locator("#projects-list > .project-card").first();
     await rootProject.locator(":scope > .project-body > .project-add-actions > .add-subproject").click();
@@ -68,6 +79,7 @@ const server = http.createServer((req, res) => {
     const completedProject = desktop.locator(".project-archive-card", { hasText: "示例项目" });
     await completedProject.waitFor();
     await completedProject.locator("[data-action=open-project]").click();
+    await desktop.locator(".project-detail [data-action=toggle-completed-tasks]").click();
     await desktop.locator(".project-detail").getByText("子项目自动化任务").waitFor();
     await desktop.locator(".project-detail [data-action=back-to-projects]").click();
     await completedProject.locator("[data-action=restore-project]").click();
@@ -111,6 +123,7 @@ const server = http.createServer((req, res) => {
     await desktop.click(".module-filter[data-module=todo] button[data-status=completed]");
     const archivedTask = desktop.locator(".archive-card", { hasText: "自动化测试任务" });
     await archivedTask.waitFor();
+    if (await desktop.locator("#todo-columns .priority-column").nth(1).locator(".archive-card", { hasText: "自动化测试任务" }).count() !== 1) throw new Error("Completed todo was not placed in its priority column");
     const decoration = await archivedTask.locator(".archive-name").evaluate(element => getComputedStyle(element).textDecorationLine);
     if (!decoration.includes("line-through")) throw new Error(`Completed task is not struck through: ${decoration}`);
     await archivedTask.locator("[data-archive-action=restore]").click();
@@ -139,6 +152,11 @@ const server = http.createServer((req, res) => {
     await floatingAdd.click();
     if (await mobile.locator("#task-dialog").evaluate(dialog => !dialog.open || !dialog.classList.contains("is-repeat"))) throw new Error("Mobile repeat add button did not open a repeat task dialog");
     await mobile.locator("#task-dialog .close-button").click();
+    await mobile.click("button[data-view=schedule]");
+    if (await floatingAdd.getAttribute("aria-label") !== "添加日程") throw new Error("Mobile add button did not switch to schedule mode");
+    await floatingAdd.click();
+    if (await mobile.locator("#task-dialog").evaluate(dialog => !dialog.open || !dialog.classList.contains("is-schedule"))) throw new Error("Mobile schedule add button did not open a schedule dialog");
+    await mobile.locator("#task-dialog .close-button").click();
     await mobile.click("button[data-view=projects]");
     if (await floatingAdd.getAttribute("aria-label") !== "新建项目") throw new Error("Mobile add button did not switch to project mode");
     await floatingAdd.click();
@@ -164,7 +182,7 @@ const server = http.createServer((req, res) => {
     }));
     if (overflow.scrollWidth > overflow.clientWidth) throw new Error(`Task dialog has horizontal overflow: ${JSON.stringify(overflow)}`);
     await compact.screenshot({ path: path.join(output, "qingdan-dialog-compact.png"), fullPage: true });
-    console.log("UI check passed: nested projects/tasks, project completion/detail, hidden completed project tasks, navigation, history/restore, blank cancel/close, manual task order, multiple reminder slots, automatic and flexible reminder, no horizontal overflow, desktop and mobile rendering.");
+    console.log("UI check passed: schedule, priority-separated completion, nested projects/tasks, project completion/detail, hidden completed project tasks, navigation, history/restore, blank cancel/close, manual task order, multiple reminder slots, automatic and flexible reminder, no horizontal overflow, desktop and mobile rendering.");
   } finally {
     await browser.close();
     server.close();

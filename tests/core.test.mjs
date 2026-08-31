@@ -7,6 +7,7 @@ test("creates a valid initial state", () => {
   const state = createInitialState();
   assert.equal(state.version, 1);
   assert.ok(state.tasks.length >= 1);
+  assert.ok(Array.isArray(state.schedules));
   assert.ok(Array.isArray(state.projects));
 });
 
@@ -45,9 +46,9 @@ test("formats nearby nodes in plain Chinese", () => {
   assert.equal(formatNode("2026-08-14T09:30", now), "明天 09:30");
 });
 
-test("search includes tasks, notes and nested project tasks", () => {
-  const state = { tasks: [{ id: "a", kind: "todo", name: "调 PID", notes: "", status: "active" }], projects: [{ id: "p", name: "小车", tasks: [], projects: [{ id: "sub", name: "底盘", tasks: [{ id: "b", name: "测试电机", notes: "PID", status: "active" }], projects: [] }] }] };
-  assert.equal(searchState(state, "PID").length, 2);
+test("search includes tasks, schedules, notes and nested project tasks", () => {
+  const state = { tasks: [{ id: "a", kind: "todo", name: "调 PID", notes: "", status: "active" }], schedules: [{ id: "s", kind: "schedule", name: "PID 讨论", notes: "", status: "active" }], projects: [{ id: "p", name: "小车", tasks: [], projects: [{ id: "sub", name: "底盘", tasks: [{ id: "b", name: "测试电机", notes: "PID", status: "active" }], projects: [] }] }] };
+  assert.equal(searchState(state, "PID").length, 3);
   assert.equal(searchState(state, "底盘")[0].project.id, "sub");
 });
 

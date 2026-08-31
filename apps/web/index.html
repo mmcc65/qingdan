@@ -20,6 +20,7 @@
       <nav class="tabs" aria-label="主要页面">
         <button class="tab active" data-view="todo">待办 <span id="todo-count">0</span></button>
         <button class="tab" data-view="repeat">重复 <span id="repeat-count">0</span></button>
+        <button class="tab" data-view="schedule">日程 <span id="schedule-count">0</span></button>
         <button class="tab" data-view="projects">项目 <span id="project-count">0</span></button>
       </nav>
       <div class="top-actions">
@@ -57,6 +58,27 @@
         <div class="archive-panel" id="repeat-archive"></div>
       </section>
 
+      <section class="view" id="schedule-view">
+        <div class="page-heading">
+          <div><p class="eyebrow">当日行程</p><h1>日程</h1><p>按日期安排当天行程，并在需要时提前提醒。</p></div>
+          <button class="primary-button add-button" data-kind="schedule"><span>＋</span> 添加日程</button>
+        </div>
+        <div class="schedule-toolbar">
+          <button class="secondary-button compact-button" data-schedule-day="previous" aria-label="前一天">‹</button>
+          <input type="date" id="schedule-date" aria-label="选择日程日期">
+          <button class="secondary-button compact-button" data-schedule-day="next" aria-label="后一天">›</button>
+          <button class="text-button" data-schedule-day="today">回到今天</button>
+          <strong id="schedule-day-label"></strong>
+        </div>
+        <div class="module-filter" data-module="schedule">
+          <button class="active" data-status="active">行程 <span id="schedule-active-count">0</span></button>
+          <button data-status="completed">已完成 <span id="schedule-completed-count">0</span></button>
+          <button data-status="cancelled">已取消 <span id="schedule-cancelled-count">0</span></button>
+        </div>
+        <div class="content-panel" id="schedule-list"></div>
+        <div class="archive-panel" id="schedule-archive"></div>
+      </section>
+
       <section class="view" id="projects-view">
         <div class="page-heading">
           <div><p class="eyebrow">有序推进</p><h1>项目</h1><p>项目内部以你的流程顺序为主。</p></div>
@@ -79,14 +101,14 @@
     <form method="dialog" id="task-form">
       <div class="dialog-header"><div><p class="eyebrow" id="dialog-kicker">新任务</p><h2 id="dialog-title">添加待办</h2></div><button type="button" class="close-button" data-close="task-dialog" aria-label="关闭">×</button></div>
       <input type="hidden" id="task-id"><input type="hidden" id="task-kind"><input type="hidden" id="task-project-id">
-      <label class="field"><span>任务名称</span><input id="task-name" required maxlength="120" autocomplete="off" placeholder="准备做什么？"></label>
-      <fieldset class="field"><legend>重要程度</legend><div class="segmented priority-picker">
+      <label class="field"><span id="task-name-label">任务名称</span><input id="task-name" required maxlength="120" autocomplete="off" placeholder="准备做什么？"></label>
+      <fieldset class="field" id="task-priority-field"><legend>重要程度</legend><div class="segmented priority-picker">
         <label><input type="radio" name="priority" value="important"><span><i class="dot important"></i>重要</span></label>
         <label><input type="radio" name="priority" value="normal" checked><span><i class="dot normal"></i>普通</span></label>
         <label><input type="radio" name="priority" value="later"><span><i class="dot later"></i>随后</span></label>
       </div></fieldset>
       <div class="two-columns">
-        <label class="field"><span>节点 <em>可选</em></span><input type="datetime-local" id="task-node"></label>
+        <label class="field" id="task-node-field"><span id="task-node-label">节点 <em>可选</em></span><input type="datetime-local" id="task-node"></label>
         <label class="field repeat-only"><span>重复规则</span><select id="task-rule"><option value="每天">每天</option><option value="每个工作日">每个工作日</option><option value="每周">每周</option><option value="每月">每月</option><option value="每隔 2 周">每隔 2 周</option></select></label>
       </div>
       <label class="field"><span>提醒</span><select id="task-reminder"><option value="none">不提醒</option><option value="single">单次提醒</option><option value="interval">循环提醒</option></select></label>
@@ -99,7 +121,7 @@
         <p class="field-help">每个时间段可单独设置开始、结束和提醒间隔；开始时间不填时从当前时间开始，结束时间不填时使用任务节点。</p>
       </div>
       <label class="field"><span>备注 <em>可选</em></span><textarea id="task-notes" rows="3" maxlength="1000" placeholder="补充必要信息，不显示在主列表中"></textarea></label>
-      <label class="check-row"><input type="checkbox" id="task-pinned"><span>置顶这项任务</span></label>
+      <label class="check-row" id="task-pinned-row"><input type="checkbox" id="task-pinned"><span>置顶这项任务</span></label>
       <div class="dialog-actions"><button type="button" data-close="task-dialog" class="secondary-button">取消</button><button type="submit" value="default" class="primary-button">保存</button></div>
     </form>
   </dialog>

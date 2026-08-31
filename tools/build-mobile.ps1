@@ -51,7 +51,7 @@ if (Test-Path -LiteralPath $signingProperties) {
         versionName = $versionName
         apkUrl = 'Qingdan-mobile-release.apk'
         sha256 = $releaseHash
-        notes = '修复部分桌面启动器未采用 2×2 组件尺寸的问题，并保留圆角卡片样式。'
+        notes = '新增独立日程与提醒；已完成待办按重要性分栏；手机组件显示更多待办、可打开应用并可直接完成。'
     } | ConvertTo-Json
     $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
     [System.IO.File]::WriteAllText((Join-Path $outputDir 'latest.json'), $releaseManifest, $utf8NoBom)
