@@ -10,7 +10,7 @@
 
 所有操作会先保存在本机，离线也能使用。需要跨设备时，可以连接自己的 Supabase 项目同步数据，不依赖作者托管的任务数据库。
 
-当前版本：`0.9.0 Beta`
+当前版本：`0.9.1 Beta`
 
 [下载 Windows 版](https://github.com/mmcc65/qingdan/releases/latest/download/Qingdan-desktop-release.zip) · [下载 Android/HarmonyOS 版](https://github.com/mmcc65/qingdan/releases/latest/download/Qingdan-mobile-release.apk) · [查看最新版说明](https://github.com/mmcc65/qingdan/releases/latest) · [反馈问题](https://github.com/mmcc65/qingdan/issues)
 
@@ -152,7 +152,7 @@
 - 登录后自动进行首次同步、延迟上传和 Realtime 变化订阅，也可手动“立即同步”。
 - 同步状态会显示尚未配置、等待登录、正在同步、已同步或连接异常。
 - Supabase Row Level Security 按登录账户隔离数据；应用拒绝把 Secret/service_role key 当作客户端密钥。
-- 当前 `0.9.0` 以每个用户的一份完整状态进行同步，较新的时间戳覆盖较旧状态；复杂的并发字段合并仍是后续工作。
+- 当前 `0.9.1` 以每个用户的一份完整状态进行同步，较新的时间戳覆盖较旧状态；复杂的并发字段合并仍是后续工作。
 
 ### 8. 数据与应用设置
 

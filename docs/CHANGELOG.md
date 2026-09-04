@@ -2,6 +2,18 @@
 
 本项目从公开预览版开始遵循语义化版本号。
 
+## [0.9.1] - 2026-09-04
+
+### 改进
+
+- 手机桌面组件在待办和重复任务名称前显示重要程度色点：红色表示重要、黄色表示普通、灰色表示随后
+- 点击任务或项目“...”菜单之外的任意位置即可关闭菜单，按 Esc 也会统一关闭两类菜单
+
+### 发布
+
+- Android/HarmonyOS `versionCode` 提升至 18
+- 同步发布 Windows、Android/HarmonyOS 安装包和应用内更新清单
+
 ## [0.9.0] - 2026-08-31
 
 ### 新功能
@@ -189,6 +201,7 @@
 [0.6.2]: https://github.com/mmcc65/qingdan/releases/tag/v0.6.2
 [0.7.0]: https://github.com/mmcc65/qingdan/releases/tag/v0.7.0
 [0.7.1]: https://github.com/mmcc65/qingdan/releases/tag/v0.7.1
+[0.9.1]: https://github.com/mmcc65/qingdan/releases/tag/v0.9.1
 [0.9.0]: https://github.com/mmcc65/qingdan/releases/tag/v0.9.0
 [0.8.0]: https://github.com/mmcc65/qingdan/releases/tag/v0.8.0
 [0.5.3]: https://github.com/mmcc65/qingdan/releases/tag/v0.5.3

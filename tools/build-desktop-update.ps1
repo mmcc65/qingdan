@@ -25,7 +25,7 @@ Compress-Archive -Path (Join-Path $staging '*') -DestinationPath $archive -Compr
 $hash = (Get-FileHash -LiteralPath $archive -Algorithm SHA256).Hash.ToLower()
 $projectText = Get-Content -LiteralPath $project -Raw
 $version = [regex]::Match($projectText, '<Version>([^<]+)</Version>').Groups[1].Value
-$notes = '日程新增总览，按日期集中显示今天及未来所有未完成行程；原有三个状态继续按所选日期显示。'
+$notes = [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('54K55Ye75Lu75Yqh5oiW6aG555uu5pu05aSa6I+c5Y2V5LmL5aSW55qE5Lu75oSP5L2N572u5Y2z5Y+v5YWz6Zet6I+c5Y2V77yb5oyJIEVzYyDkuZ/kvJrnu5/kuIDlhbPpl63jgII='))
 $manifest = [ordered]@{
     version = $version
     packageUrl = 'Qingdan-desktop-release.zip'

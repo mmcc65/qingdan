@@ -173,6 +173,9 @@ const server = http.createServer((req, res) => {
     const normalColumn = desktop.locator("#todo-columns .priority-column").nth(1);
     const taskB = normalColumn.locator(".task-card", { hasText: "排序任务 B" });
     await taskB.locator("[data-action=menu]").click();
+    await desktop.locator("#todo-view .page-heading").click();
+    if (await taskB.evaluate(card => card.classList.contains("menu-open"))) throw new Error("Task menu did not close after clicking outside");
+    await taskB.locator("[data-action=menu]").click();
     await taskB.locator("[data-action=move-up]").click();
     const orderedTaskNames = await normalColumn.locator(".task-card .task-name").allTextContents();
     if (orderedTaskNames.indexOf("排序任务 B") !== orderedTaskNames.indexOf("排序任务 A") - 1) throw new Error(`Manual task order was not applied: ${JSON.stringify(orderedTaskNames)}`);

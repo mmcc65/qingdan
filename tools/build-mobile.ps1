@@ -51,7 +51,7 @@ if (Test-Path -LiteralPath $signingProperties) {
         versionName = $versionName
         apkUrl = 'Qingdan-mobile-release.apk'
         sha256 = $releaseHash
-        notes = '手机桌面组件新增顶部左右切换按钮，可在待办、重复、项目和今日日程之间双向循环；标题保持居中且不占用下方任务空间。'
+        notes = [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('5omL5py65qGM6Z2i57uE5Lu25paw5aKe5Lu75Yqh6YeN6KaB56iL5bqm6Imy54K577yb54K55Ye75Lu75Yqh5oiW6aG555uu5pu05aSa6I+c5Y2V5LmL5aSW55qE5Lu75oSP5L2N572u5Y2z5Y+v5YWz6Zet6I+c5Y2V44CC'))
     } | ConvertTo-Json
     $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
     [System.IO.File]::WriteAllText((Join-Path $outputDir 'latest.json'), $releaseManifest, $utf8NoBom)

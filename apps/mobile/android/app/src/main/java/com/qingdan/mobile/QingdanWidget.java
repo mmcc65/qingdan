@@ -6,6 +6,7 @@ import android.appwidget.AppWidgetProvider;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.graphics.Color;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.RemoteViews;
@@ -34,6 +35,9 @@ public final class QingdanWidget extends AppWidgetProvider {
     private static final int[] CHECKS = {R.id.widget_complete_1, R.id.widget_complete_2,
             R.id.widget_complete_3, R.id.widget_complete_4, R.id.widget_complete_5,
             R.id.widget_complete_6, R.id.widget_complete_7};
+    private static final int[] PRIORITIES = {R.id.widget_priority_1, R.id.widget_priority_2,
+            R.id.widget_priority_3, R.id.widget_priority_4, R.id.widget_priority_5,
+            R.id.widget_priority_6, R.id.widget_priority_7};
     private static final int[] TASKS = {R.id.widget_task_1, R.id.widget_task_2, R.id.widget_task_3,
             R.id.widget_task_4, R.id.widget_task_5, R.id.widget_task_6, R.id.widget_task_7};
 
@@ -122,6 +126,11 @@ public final class QingdanWidget extends AppWidgetProvider {
             String itemId = item.optString("id");
             views.setTextViewText(TASKS[i], item.optString("name"));
             views.setTextViewText(CHECKS[i], "○");
+            boolean showsPriority = "todo".equals(page) || "repeat".equals(page);
+            views.setViewVisibility(PRIORITIES[i], showsPriority ? View.VISIBLE : View.GONE);
+            if (showsPriority) {
+                views.setTextColor(PRIORITIES[i], priorityColor(item.optString("priority")));
+            }
             views.setOnClickPendingIntent(TASKS[i], open);
             Intent complete = new Intent(context, QingdanWidget.class)
                     .setAction(ACTION_COMPLETE)
@@ -246,5 +255,11 @@ public final class QingdanWidget extends AppWidgetProvider {
         if ("important".equals(value)) return 0;
         if ("normal".equals(value)) return 1;
         return 2;
+    }
+
+    private static int priorityColor(String value) {
+        if ("important".equals(value)) return Color.rgb(217, 92, 82);
+        if ("normal".equals(value)) return Color.rgb(216, 161, 47);
+        return Color.rgb(157, 162, 155);
     }
 }

@@ -460,6 +460,13 @@ function toast(message) {
   clearTimeout(toast.timer); toast.timer = setTimeout(() => el.classList.remove("show"), 2400);
 }
 
+function closeOpenMenus(except = null) {
+  $$(".menu-open, .project-menu-open").forEach(card => {
+    if (card === except) return;
+    card.classList.remove("menu-open", "project-menu-open");
+  });
+}
+
 $("#task-form").addEventListener("submit", event => {
   event.preventDefault();
   const id = $("#task-id").value;
@@ -518,6 +525,8 @@ $("#task-node").addEventListener("input", event => {
 });
 
 document.addEventListener("click", event => {
+  const menuToggle = event.target.closest("[data-action=menu], [data-action=project-menu]");
+  closeOpenMenus(menuToggle?.closest(".task-card, .project-card") || null);
   const tab = event.target.closest(".tab");
   if (tab) {
     activeView = tab.dataset.view;
@@ -745,7 +754,7 @@ $("#test-reminder").addEventListener("click", () => {
 });
 
 document.addEventListener("keydown", event => {
-  if (event.key === "Escape") $$(".menu-open").forEach(el => el.classList.remove("menu-open"));
+  if (event.key === "Escape") closeOpenMenus();
   if ((event.ctrlKey || event.metaKey) && event.key === "k") { event.preventDefault(); $("#search-button").click(); }
   if ((event.ctrlKey || event.metaKey) && event.key === "Enter" && !$("#task-dialog").open) { event.preventDefault(); openTaskDialog("todo"); }
 });
