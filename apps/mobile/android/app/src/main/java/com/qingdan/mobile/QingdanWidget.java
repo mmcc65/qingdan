@@ -7,8 +7,8 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Color;
+import android.net.Uri;
 import android.os.Bundle;
-import android.view.View;
 import android.widget.RemoteViews;
 import android.widget.Toast;
 
@@ -21,25 +21,18 @@ import java.util.Comparator;
 import java.util.List;
 
 public final class QingdanWidget extends AppWidgetProvider {
-    private static final String ACTION_COMPLETE = "com.qingdan.mobile.WIDGET_COMPLETE";
+    static final String ACTION_ITEM = "com.qingdan.mobile.WIDGET_ITEM";
     private static final String ACTION_PAGE = "com.qingdan.mobile.WIDGET_PAGE";
-    private static final String EXTRA_TASK_ID = "task_id";
-    private static final String EXTRA_PAGE = "page";
+    static final String EXTRA_TASK_ID = "task_id";
+    static final String EXTRA_PAGE = "page";
+    static final String EXTRA_ITEM_ACTION = "item_action";
+    static final String ITEM_OPEN = "open";
+    static final String ITEM_COMPLETE = "complete";
     private static final String EXTRA_DELTA = "delta";
     private static final String EXTRA_WIDGET_ID = "widget_id";
     private static final String PAGE_PREFS = "qingdan_widget_pages";
-    private static final String[] PAGES = {"todo", "repeat", "projects", "schedule"};
-    private static final String[] LABELS = {"待办", "重复", "项目", "日程"};
-    private static final int[] ROWS = {R.id.widget_row_1, R.id.widget_row_2, R.id.widget_row_3,
-            R.id.widget_row_4, R.id.widget_row_5, R.id.widget_row_6, R.id.widget_row_7};
-    private static final int[] CHECKS = {R.id.widget_complete_1, R.id.widget_complete_2,
-            R.id.widget_complete_3, R.id.widget_complete_4, R.id.widget_complete_5,
-            R.id.widget_complete_6, R.id.widget_complete_7};
-    private static final int[] PRIORITIES = {R.id.widget_priority_1, R.id.widget_priority_2,
-            R.id.widget_priority_3, R.id.widget_priority_4, R.id.widget_priority_5,
-            R.id.widget_priority_6, R.id.widget_priority_7};
-    private static final int[] TASKS = {R.id.widget_task_1, R.id.widget_task_2, R.id.widget_task_3,
-            R.id.widget_task_4, R.id.widget_task_5, R.id.widget_task_6, R.id.widget_task_7};
+    static final String[] PAGES = {"todo", "repeat", "projects", "schedule", "memo"};
+    private static final String[] LABELS = {"待办", "重复", "项目", "日程", "随笔"};
 
     @Override
     public void onUpdate(Context context, AppWidgetManager manager, int[] appWidgetIds) {
@@ -68,8 +61,12 @@ public final class QingdanWidget extends AppWidgetProvider {
             if (widgetId != AppWidgetManager.INVALID_APPWIDGET_ID) changePage(context, widgetId, delta);
             return;
         }
-        if (ACTION_COMPLETE.equals(intent.getAction())) {
-            complete(context, intent.getStringExtra(EXTRA_TASK_ID), intent.getStringExtra(EXTRA_PAGE));
+        if (ACTION_ITEM.equals(intent.getAction())) {
+            if (ITEM_COMPLETE.equals(intent.getStringExtra(EXTRA_ITEM_ACTION))) {
+                complete(context, intent.getStringExtra(EXTRA_TASK_ID), intent.getStringExtra(EXTRA_PAGE));
+            } else {
+                openApp(context);
+            }
             return;
         }
         super.onReceive(context, intent);
@@ -100,6 +97,7 @@ public final class QingdanWidget extends AppWidgetProvider {
 
     private static void update(Context context, AppWidgetManager manager, int id) {
         manager.updateAppWidget(id, views(context, id));
+        manager.notifyAppWidgetViewDataChanged(id, R.id.widget_list);
     }
 
     private static RemoteViews views(Context context, int widgetId) {
@@ -117,31 +115,25 @@ public final class QingdanWidget extends AppWidgetProvider {
         views.setOnClickPendingIntent(R.id.widget_title, open);
         views.setOnClickPendingIntent(R.id.widget_previous, pagePending(context, widgetId, -1));
         views.setOnClickPendingIntent(R.id.widget_next, pagePending(context, widgetId, 1));
-
-        for (int i = 0; i < ROWS.length; i++) {
-            boolean shown = i < items.size();
-            views.setViewVisibility(ROWS[i], shown ? View.VISIBLE : View.GONE);
-            if (!shown) continue;
-            JSONObject item = items.get(i);
-            String itemId = item.optString("id");
-            views.setTextViewText(TASKS[i], item.optString("name"));
-            views.setTextViewText(CHECKS[i], "○");
-            boolean showsPriority = "todo".equals(page) || "repeat".equals(page);
-            views.setViewVisibility(PRIORITIES[i], showsPriority ? View.VISIBLE : View.GONE);
-            if (showsPriority) {
-                views.setTextColor(PRIORITIES[i], priorityColor(item.optString("priority")));
-            }
-            views.setOnClickPendingIntent(TASKS[i], open);
-            Intent complete = new Intent(context, QingdanWidget.class)
-                    .setAction(ACTION_COMPLETE)
-                    .putExtra(EXTRA_TASK_ID, itemId)
-                    .putExtra(EXTRA_PAGE, page);
-            PendingIntent completePending = PendingIntent.getBroadcast(context,
-                    (page + "|" + itemId).hashCode() & 0x7fffffff, complete,
-                    PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
-            views.setOnClickPendingIntent(CHECKS[i], completePending);
-        }
+        Intent adapter = new Intent(context, QingdanWidgetService.class)
+                .putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, widgetId)
+                .putExtra(EXTRA_PAGE, page)
+                .setData(Uri.parse("qingdan://widget/" + widgetId + "/" + page));
+        views.setRemoteAdapter(R.id.widget_list, adapter);
+        views.setEmptyView(R.id.widget_list, R.id.widget_empty);
+        Intent item = new Intent(context, QingdanWidget.class)
+                .setAction(ACTION_ITEM)
+                .putExtra(EXTRA_WIDGET_ID, widgetId);
+        PendingIntent template = PendingIntent.getBroadcast(context, widgetId, item,
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_MUTABLE);
+        views.setPendingIntentTemplate(R.id.widget_list, template);
         return views;
+    }
+
+    private static void openApp(Context context) {
+        Intent open = new Intent(context, MainActivity.class)
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+        context.startActivity(open);
     }
 
     private static PendingIntent pagePending(Context context, int widgetId, int delta) {
@@ -154,16 +146,17 @@ public final class QingdanWidget extends AppWidgetProvider {
                 PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
     }
 
-    private static List<JSONObject> activeItems(Context context, String page) {
+    static List<JSONObject> activeItems(Context context, String page) {
         List<JSONObject> result = new ArrayList<>();
         try {
             JSONObject state = new JSONObject(StateStore.load(context));
             JSONArray source = "projects".equals(page) ? state.optJSONArray("projects")
                     : "schedule".equals(page) ? state.optJSONArray("schedules")
+                    : "memo".equals(page) ? state.optJSONArray("memos")
                     : state.optJSONArray("tasks");
             if (source != null) for (int i = 0; i < source.length(); i++) {
                 JSONObject item = source.optJSONObject(i);
-                if (item == null || !"active".equals(item.optString("status", "active"))) continue;
+                if (item == null || (!"memo".equals(page) && !"active".equals(item.optString("status", "active")))) continue;
                 if ("todo".equals(page) && !"todo".equals(item.optString("kind"))) continue;
                 if ("repeat".equals(page) && !"repeat".equals(item.optString("kind"))) continue;
                 String node = item.optString("node");
@@ -174,7 +167,8 @@ public final class QingdanWidget extends AppWidgetProvider {
         } catch (Exception ignored) {
         }
         if ("schedule".equals(page)) {
-            result.sort(Comparator.comparing(item -> item.optString("node")));
+            result.sort(Comparator.comparingInt((JSONObject item) -> item.optInt("order"))
+                    .thenComparing(item -> item.optString("node")));
         } else {
             result.sort(Comparator
                     .comparing((JSONObject item) -> !item.optBoolean("pinned"))
@@ -257,7 +251,7 @@ public final class QingdanWidget extends AppWidgetProvider {
         return 2;
     }
 
-    private static int priorityColor(String value) {
+    static int priorityColor(String value) {
         if ("important".equals(value)) return Color.rgb(217, 92, 82);
         if ("normal".equals(value)) return Color.rgb(216, 161, 47);
         return Color.rgb(157, 162, 155);

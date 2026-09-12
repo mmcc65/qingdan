@@ -24,11 +24,21 @@
             android:contentDescription="下一类" />
     </LinearLayout>
 
-    <LinearLayout android:id="@+id/widget_row_1" style="@style/WidgetRow"><TextView android:id="@+id/widget_complete_1" style="@style/WidgetCheck"/><TextView android:id="@+id/widget_priority_1" style="@style/WidgetPriority"/><TextView android:id="@+id/widget_task_1" style="@style/WidgetTask"/></LinearLayout>
-    <LinearLayout android:id="@+id/widget_row_2" style="@style/WidgetRow"><TextView android:id="@+id/widget_complete_2" style="@style/WidgetCheck"/><TextView android:id="@+id/widget_priority_2" style="@style/WidgetPriority"/><TextView android:id="@+id/widget_task_2" style="@style/WidgetTask"/></LinearLayout>
-    <LinearLayout android:id="@+id/widget_row_3" style="@style/WidgetRow"><TextView android:id="@+id/widget_complete_3" style="@style/WidgetCheck"/><TextView android:id="@+id/widget_priority_3" style="@style/WidgetPriority"/><TextView android:id="@+id/widget_task_3" style="@style/WidgetTask"/></LinearLayout>
-    <LinearLayout android:id="@+id/widget_row_4" style="@style/WidgetRow"><TextView android:id="@+id/widget_complete_4" style="@style/WidgetCheck"/><TextView android:id="@+id/widget_priority_4" style="@style/WidgetPriority"/><TextView android:id="@+id/widget_task_4" style="@style/WidgetTask"/></LinearLayout>
-    <LinearLayout android:id="@+id/widget_row_5" style="@style/WidgetRow"><TextView android:id="@+id/widget_complete_5" style="@style/WidgetCheck"/><TextView android:id="@+id/widget_priority_5" style="@style/WidgetPriority"/><TextView android:id="@+id/widget_task_5" style="@style/WidgetTask"/></LinearLayout>
-    <LinearLayout android:id="@+id/widget_row_6" style="@style/WidgetRow"><TextView android:id="@+id/widget_complete_6" style="@style/WidgetCheck"/><TextView android:id="@+id/widget_priority_6" style="@style/WidgetPriority"/><TextView android:id="@+id/widget_task_6" style="@style/WidgetTask"/></LinearLayout>
-    <LinearLayout android:id="@+id/widget_row_7" style="@style/WidgetRow"><TextView android:id="@+id/widget_complete_7" style="@style/WidgetCheck"/><TextView android:id="@+id/widget_priority_7" style="@style/WidgetPriority"/><TextView android:id="@+id/widget_task_7" style="@style/WidgetTask"/></LinearLayout>
+    <ListView
+        android:id="@+id/widget_list"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:divider="@null"
+        android:scrollbars="vertical" />
+
+    <TextView
+        android:id="@+id/widget_empty"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:gravity="center"
+        android:text="暂无内容"
+        android:textColor="#7C857F"
+        android:textSize="12sp" />
 </LinearLayout>

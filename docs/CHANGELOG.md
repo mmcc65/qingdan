@@ -2,6 +2,25 @@
 
 本项目从公开预览版开始遵循语义化版本号。
 
+## [0.10.0] - 2026-09-12
+
+### 新功能
+
+- 在“日程”后新增“随笔”模块，可记录不属于任务的小事情，并为每篇随笔添加独立备注
+- 随笔按当前显示顺序自动编号，支持置顶、取消置顶，以及置顶组和普通组内分别排序
+- 任务、项目和随笔卡片支持长按后拖动排序，原“...”菜单中的上移、下移方式继续保留
+- 手机桌面组件新增“随笔”分类，参与顶部左右循环切换
+
+### 改进
+
+- 手机桌面组件改用原生可滚动列表，不再限制为固定行数，向下滑动即可查看全部内容
+- 日程的菜单排序与长按排序现在会正确保存，并同步反映到手机组件
+
+### 发布
+
+- Android/HarmonyOS `versionCode` 提升至 19
+- 同步发布 Windows、Android/HarmonyOS 安装包和应用内更新清单
+
 ## [0.9.1] - 2026-09-04
 
 ### 改进
@@ -201,6 +220,7 @@
 [0.6.2]: https://github.com/mmcc65/qingdan/releases/tag/v0.6.2
 [0.7.0]: https://github.com/mmcc65/qingdan/releases/tag/v0.7.0
 [0.7.1]: https://github.com/mmcc65/qingdan/releases/tag/v0.7.1
+[0.10.0]: https://github.com/mmcc65/qingdan/releases/tag/v0.10.0
 [0.9.1]: https://github.com/mmcc65/qingdan/releases/tag/v0.9.1
 [0.9.0]: https://github.com/mmcc65/qingdan/releases/tag/v0.9.0
 [0.8.0]: https://github.com/mmcc65/qingdan/releases/tag/v0.8.0

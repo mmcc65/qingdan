@@ -29,7 +29,7 @@ const server = http.createServer((req, res) => {
     desktop.on("pageerror", error => errors.push(error.message));
     await desktop.goto(`http://127.0.0.1:${port}`, { waitUntil: "networkidle" });
     const tabOrder = await desktop.locator(".tabs .tab").evaluateAll(tabs => tabs.map(tab => tab.dataset.view));
-    if (JSON.stringify(tabOrder) !== JSON.stringify(["todo", "repeat", "projects", "schedule"])) throw new Error(`Unexpected tab order: ${JSON.stringify(tabOrder)}`);
+    if (JSON.stringify(tabOrder) !== JSON.stringify(["todo", "repeat", "projects", "schedule", "memo"])) throw new Error(`Unexpected tab order: ${JSON.stringify(tabOrder)}`);
     await desktop.screenshot({ path: path.join(output, "qingdan-desktop.png"), fullPage: true });
     await desktop.click("button[data-view=repeat]");
     await desktop.click("button[data-view=schedule]");
@@ -179,6 +179,48 @@ const server = http.createServer((req, res) => {
     await taskB.locator("[data-action=move-up]").click();
     const orderedTaskNames = await normalColumn.locator(".task-card .task-name").allTextContents();
     if (orderedTaskNames.indexOf("排序任务 B") !== orderedTaskNames.indexOf("排序任务 A") - 1) throw new Error(`Manual task order was not applied: ${JSON.stringify(orderedTaskNames)}`);
+    const taskA = normalColumn.locator(".task-card", { hasText: "排序任务 A" });
+    const taskABox = await taskA.boundingBox();
+    const taskBBox = await taskB.boundingBox();
+    await desktop.mouse.move(taskABox.x + taskABox.width / 2, taskABox.y + taskABox.height / 2);
+    await desktop.mouse.down();
+    await desktop.waitForTimeout(520);
+    await desktop.mouse.move(taskBBox.x + taskBBox.width / 2, taskBBox.y + taskBBox.height / 2, { steps: 4 });
+    await desktop.mouse.up();
+    const dragOrderedTaskNames = await normalColumn.locator(".task-card .task-name").allTextContents();
+    if (dragOrderedTaskNames.indexOf("排序任务 A") !== dragOrderedTaskNames.indexOf("排序任务 B") - 1) throw new Error(`Long-press task order was not applied: ${JSON.stringify(dragOrderedTaskNames)}`);
+
+    await desktop.click("button[data-view=memo]");
+    for (const memo of [
+      { content: "置顶随笔 A", notes: "随笔备注 A", pinned: true },
+      { content: "置顶随笔 B", notes: "", pinned: true },
+      { content: "普通随笔 C", notes: "", pinned: false }
+    ]) {
+      await desktop.click("#memo-view .page-heading button[data-kind=memo]");
+      await desktop.fill("#memo-content", memo.content);
+      await desktop.fill("#memo-notes", memo.notes);
+      if (memo.pinned) await desktop.check("#memo-pinned");
+      await desktop.click("#memo-form button[type=submit]");
+    }
+    if (await desktop.locator("#memo-count").textContent() !== "3") throw new Error("Memo tab count was not updated");
+    if (JSON.stringify(await desktop.locator(".memo-index").allTextContents()) !== JSON.stringify(["1.", "2.", "3."])) throw new Error("Memos were not numbered");
+    await desktop.getByText("随笔备注 A", { exact: true }).waitFor();
+    const memoB = desktop.locator(".memo-card", { hasText: "置顶随笔 B" });
+    await memoB.locator("[data-memo-action=menu]").click();
+    await memoB.locator("[data-memo-action=move-up]").click();
+    const pinnedMemoOrder = await desktop.locator(".memo-content").allTextContents();
+    if (pinnedMemoOrder[0] !== "置顶随笔 B" || pinnedMemoOrder[1] !== "置顶随笔 A") throw new Error(`Pinned memo order was not applied: ${JSON.stringify(pinnedMemoOrder)}`);
+    const memoA = desktop.locator(".memo-card", { hasText: "置顶随笔 A" });
+    const memoABox = await memoA.boundingBox();
+    const memoBBox = await memoB.boundingBox();
+    await desktop.mouse.move(memoABox.x + memoABox.width / 2, memoABox.y + memoABox.height / 2);
+    await desktop.mouse.down();
+    await desktop.waitForTimeout(520);
+    await desktop.mouse.move(memoBBox.x + memoBBox.width / 2, memoBBox.y + memoBBox.height / 2, { steps: 4 });
+    await desktop.mouse.up();
+    const draggedMemoOrder = await desktop.locator(".memo-content").allTextContents();
+    if (draggedMemoOrder[0] !== "置顶随笔 A" || draggedMemoOrder[1] !== "置顶随笔 B") throw new Error(`Long-press memo order was not applied: ${JSON.stringify(draggedMemoOrder)}`);
+    await desktop.screenshot({ path: path.join(output, "qingdan-memo.png"), fullPage: true });
     if (errors.length) throw new Error(`Page errors: ${errors.join("; ")}`);
 
     const mobile = await browser.newPage({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 1 });
@@ -195,6 +237,11 @@ const server = http.createServer((req, res) => {
     await floatingAdd.click();
     if (await mobile.locator("#task-dialog").evaluate(dialog => !dialog.open || !dialog.classList.contains("is-schedule"))) throw new Error("Mobile schedule add button did not open a schedule dialog");
     await mobile.locator("#task-dialog .close-button").click();
+    await mobile.click("button[data-view=memo]");
+    if (await floatingAdd.getAttribute("aria-label") !== "添加随笔") throw new Error("Mobile add button did not switch to memo mode");
+    await floatingAdd.click();
+    if (await mobile.locator("#memo-dialog").evaluate(dialog => !dialog.open)) throw new Error("Mobile memo add button did not open memo dialog");
+    await mobile.locator("#memo-dialog .close-button").click();
     await mobile.click("button[data-view=projects]");
     if (await floatingAdd.getAttribute("aria-label") !== "新建项目") throw new Error("Mobile add button did not switch to project mode");
     await floatingAdd.click();
@@ -221,7 +268,7 @@ const server = http.createServer((req, res) => {
     }));
     if (overflow.scrollWidth > overflow.clientWidth) throw new Error(`Task dialog has horizontal overflow: ${JSON.stringify(overflow)}`);
     await compact.screenshot({ path: path.join(output, "qingdan-dialog-compact.png"), fullPage: true });
-    console.log("UI check passed: schedule, priority-separated completion, nested projects/tasks, project completion/detail, hidden completed project tasks, navigation, history/restore, blank cancel/close, manual task order, multiple reminder slots, automatic and flexible reminder, no horizontal overflow, desktop and mobile rendering.");
+    console.log("UI check passed: memos with notes/pinning/numbering, menu and long-press ordering, schedule, priority-separated completion, nested projects/tasks, project completion/detail, hidden completed project tasks, navigation, history/restore, blank cancel/close, multiple reminder slots, automatic and flexible reminder, no horizontal overflow, desktop and mobile rendering.");
   } finally {
     await browser.close();
     server.close();

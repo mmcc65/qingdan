@@ -11,6 +11,8 @@ let activeProjectId = "";
 let scheduleDate = dateKey(new Date());
 let reminderTimeTouched = [{ start: false, end: false }];
 const moduleStatus = { todo: "active", repeat: "active", schedule: "overview", projects: "active" };
+let reorderGesture = null;
+let suppressReorderClick = false;
 
 restoreStateFromAndroid();
 
@@ -18,9 +20,10 @@ function updateFloatingAdd() {
   const button = $("#floating-add");
   if (!button) return;
   const projectView = activeView === "projects";
-  const label = projectView ? "新建项目" : activeView === "repeat" ? "添加重复任务" : activeView === "schedule" ? "添加日程" : "添加待办";
+  const memoView = activeView === "memo";
+  const label = projectView ? "新建项目" : memoView ? "添加随笔" : activeView === "repeat" ? "添加重复任务" : activeView === "schedule" ? "添加日程" : "添加待办";
   button.dataset.kind = projectView ? "" : activeView;
-  button.dataset.action = projectView ? "add-project" : "add-task";
+  button.dataset.action = projectView ? "add-project" : memoView ? "add-memo" : "add-task";
   button.setAttribute("aria-label", label);
   button.title = label;
 }
@@ -79,6 +82,7 @@ function render() {
   renderRepeats();
   renderSchedules();
   renderProjects();
+  renderMemos();
 }
 
 function renderCounts() {
@@ -86,6 +90,7 @@ function renderCounts() {
   $("#repeat-count").textContent = state.tasks.filter(t => t.kind === "repeat" && t.status === "active").length;
   const today = dateKey(new Date());
   $("#schedule-count").textContent = state.schedules.filter(t => t.status === "active" && String(t.node || "").slice(0, 10) === today).length;
+  $("#memo-count").textContent = state.memos.length;
   const rootProjects = state.projects;
   $("#project-count").textContent = rootProjects.filter(project => project.status === "active").length;
   $("#todo-active-count").textContent = state.tasks.filter(t => t.kind === "todo" && t.status === "active").length;
@@ -126,7 +131,7 @@ function taskCard(task, context = "root", projectId = "") {
   if (reminder.mode === "single") meta.push(`<span>单次提醒</span>`);
   if (reminder.mode === "interval") meta.push(`<span>循环提醒${reminder.slots?.length > 1 ? ` · ${reminder.slots.length} 个时间段` : ` · 每 ${reminder.interval || 30} ${reminder.unit === "hour" ? "小时" : reminder.unit === "day" ? "天" : "分钟"}`}</span>`);
   if (task.rule) meta.push(`<span>${escapeHtml(task.rule)}</span>`);
-  return `<article class="task-card ${task.pinned ? "pinned" : ""}" data-id="${task.id}" data-context="${context}" data-project-id="${projectId}">
+  return `<article class="task-card ${task.pinned ? "pinned" : ""}" data-id="${task.id}" data-context="${context}" data-project-id="${projectId}" data-pinned="${Boolean(task.pinned)}">
     <button class="complete-button" data-action="complete" title="完成" aria-label="完成任务"></button>
     <button class="task-main" data-action="edit"><span class="task-name"><i class="dot ${task.priority}"></i>${escapeHtml(task.name)}</span>${meta.length ? `<span class="task-meta">${meta.join("")}</span>` : ""}</button>
     ${task.pinned ? '<span class="pin" title="已置顶">⌃</span>' : ""}
@@ -258,7 +263,7 @@ function renderSchedules() {
     const today = dateKey(new Date());
     const upcoming = state.schedules
       .filter(item => item.status === "active" && String(item.node || "").slice(0, 10) >= today)
-      .sort((a, b) => new Date(a.node).getTime() - new Date(b.node).getTime());
+      .sort((a, b) => String(a.node || "").slice(0, 10).localeCompare(String(b.node || "").slice(0, 10)) || (a.order ?? 0) - (b.order ?? 0) || new Date(a.node).getTime() - new Date(b.node).getTime());
     const groups = new Map();
     upcoming.forEach(item => {
       const day = String(item.node).slice(0, 10);
@@ -278,7 +283,7 @@ function renderSchedules() {
   }
   const tasks = state.schedules
     .filter(item => item.status === "active" && String(item.node || "").slice(0, 10) === scheduleDate)
-    .sort((a, b) => new Date(a.node).getTime() - new Date(b.node).getTime());
+    .sort((a, b) => (a.order ?? 0) - (b.order ?? 0) || new Date(a.node).getTime() - new Date(b.node).getTime());
   $("#schedule-list").innerHTML = tasks.length
     ? `<div class="section-list">${tasks.map(task => taskCard(task, "schedule")).join("")}</div>`
     : `<div class="large-empty"><span>日</span><h3>当天还没有行程</h3><p>添加行程后，可选择单次或循环提醒。</p><button class="primary-button add-button" data-kind="schedule">添加日程</button></div>`;
@@ -286,6 +291,21 @@ function renderSchedules() {
     .filter(item => item.status === status && String(item.node || "").slice(0, 10) === scheduleDate)
     .sort((a, b) => (b.completedAt || b.cancelledAt || 0) - (a.completedAt || a.cancelledAt || 0));
   $("#schedule-archive").innerHTML = status === "active" ? "" : archived.length ? archived.map(item => archiveCard(item, { context: "schedule", label: formatNode(item.node) })).join("") : archiveEmpty(status);
+}
+
+function sortedMemos(items = state.memos) {
+  return [...items].sort((a, b) => Number(b.pinned) - Number(a.pinned) || (a.order ?? 0) - (b.order ?? 0) || (a.createdAt ?? 0) - (b.createdAt ?? 0));
+}
+
+function renderMemos() {
+  const memos = sortedMemos();
+  $("#memo-list").innerHTML = memos.length ? `<div class="memo-list">${memos.map((memo, index) => `<article class="memo-card ${memo.pinned ? "pinned" : ""}" data-id="${memo.id}" data-pinned="${Boolean(memo.pinned)}">
+    <span class="memo-index">${index + 1}.</span>
+    <button class="memo-main" data-memo-action="edit"><span class="memo-content">${escapeHtml(memo.content)}</span>${memo.notes ? `<span class="memo-notes">${escapeHtml(memo.notes)}</span>` : ""}</button>
+    ${memo.pinned ? '<span class="pin" title="已置顶">⌃</span>' : ""}
+    <button class="more-button" data-memo-action="menu" title="更多操作">•••</button>
+    <div class="memo-menu"><button data-memo-action="move-up">上移一项</button><button data-memo-action="move-down">下移一项</button><button data-memo-action="pin">${memo.pinned ? "取消置顶" : "置顶随笔"}</button><button data-memo-action="edit">编辑</button><button data-memo-action="delete" class="danger">删除随笔</button></div>
+  </article>`).join("")}</div>` : `<div class="large-empty"><span>记</span><h3>还没有随笔</h3><p>随时记下一些不需要完成的小事情。</p><button class="primary-button add-button" data-kind="memo">添加第一篇</button></div>`;
 }
 
 function renderProjects() {
@@ -313,7 +333,7 @@ function renderProjects() {
     const completeAction = !depth && project.status === "active" ? `<button class="project-complete-button" data-action="complete-project" title="完成项目" aria-label="完成项目">✓</button>` : "";
     const statusLabel = project.status === "completed" ? "项目已完成" : project.status === "cancelled" ? "项目已取消" : `${complete} / ${total} 已完成${children.length ? ` · ${children.length} 个子项目` : ""}`;
     const completedTasks = completed.length ? `<div class="project-completed-section"><button class="text-button show-completed-button" data-action="toggle-completed-tasks">查看已完成任务（${completed.length}）</button><div class="completed-project-tasks">${completed.map(task => completedProjectTaskCard(task, project.id)).join("")}</div></div>` : "";
-    return `<section class="project-card ${depth ? "subproject-card" : ""} project-${project.status}" data-project-id="${project.id}">
+    return `<section class="project-card ${depth ? "subproject-card" : ""} project-${project.status}" data-project-id="${project.id}" data-pinned="${Boolean(project.pinned)}">
       <header><div class="project-header-main">${completeAction}<button class="project-open" data-action="open-project" title="查看项目全部内容"><strong>${escapeHtml(project.name)}</strong><small>${statusLabel}</small></button></div><div class="project-header-actions"><button class="project-toggle" data-action="toggle-project" title="展开或收起项目" aria-label="展开或收起项目"><span class="chevron">⌄</span></button><button class="more-button" data-action="project-menu">•••</button></div></header>
       <div class="progress-track"><i style="width:${percent}%"></i></div>
       <div class="project-body">${active.map(task => taskCard(task, "project", project.id)).join("")}${completedTasks}${empty}${children.length ? `<div class="subprojects">${children.map(child => projectCard(child, depth + 1)).join("")}</div>` : ""}<div class="project-add-actions"><button class="add-project-task" data-project-id="${project.id}">＋ 添加任务</button><button class="add-subproject" data-parent-project-id="${project.id}">◇ 添加子项目</button></div></div>
@@ -345,6 +365,18 @@ function openProjectDialog(parentId = "") {
   $("#project-dialog-title").textContent = parent ? "新建子项目" : "新建项目";
   $("#project-dialog").showModal();
   setTimeout(() => $("#project-name").focus(), 30);
+}
+
+function openMemoDialog(memo = null) {
+  $("#memo-form").reset();
+  $("#memo-id").value = memo?.id || "";
+  $("#memo-content").value = memo?.content || "";
+  $("#memo-notes").value = memo?.notes || "";
+  $("#memo-pinned").checked = Boolean(memo?.pinned);
+  $("#memo-dialog-kicker").textContent = memo ? "编辑" : "新随笔";
+  $("#memo-dialog-title").textContent = memo ? "编辑随笔" : "添加随笔";
+  $("#memo-dialog").showModal();
+  setTimeout(() => $("#memo-content").focus(), 30);
 }
 
 function openTaskDialog(kind, task = null, projectId = "", priority = "normal") {
@@ -389,10 +421,14 @@ function findTask(card) {
 }
 
 function taskOrderBucket(task, project) {
-  if (project) return sortTasks(project.tasks.filter(item => item.status === "active"));
-  if (task.kind === "schedule") return state.schedules.filter(item => item.status === "active").sort((a, b) => new Date(a.node).getTime() - new Date(b.node).getTime());
-  if (task.kind === "repeat") return sortTasks(state.tasks.filter(item => item.kind === "repeat" && item.status === "active"));
-  return sortTasks(state.tasks.filter(item => item.kind === "todo" && item.priority === task.priority && item.status === "active"));
+  const samePin = item => Boolean(item.pinned) === Boolean(task.pinned);
+  if (project) return sortTasks(project.tasks.filter(item => item.status === "active" && samePin(item)));
+  if (task.kind === "schedule") {
+    const day = String(task.node || "").slice(0, 10);
+    return state.schedules.filter(item => item.status === "active" && String(item.node || "").slice(0, 10) === day).sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+  }
+  if (task.kind === "repeat") return sortTasks(state.tasks.filter(item => item.kind === "repeat" && item.status === "active" && samePin(item)));
+  return sortTasks(state.tasks.filter(item => item.kind === "todo" && item.priority === task.priority && item.status === "active" && samePin(item)));
 }
 
 function moveItem(list, item, delta) {
@@ -405,11 +441,100 @@ function moveItem(list, item, delta) {
 }
 
 function moveProject(siblings, project, delta) {
-  const ordered = [...siblings].sort((a, b) => Number(b.pinned) - Number(a.pinned) || (a.order ?? 0) - (b.order ?? 0));
+  const ordered = siblings.filter(item => item.status === project.status && Boolean(item.pinned) === Boolean(project.pinned)).sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
   if (!moveItem(ordered, project, delta)) return false;
   ordered.forEach((entry, order) => { entry.order = order; });
   return true;
 }
+
+function reorderSource(card) {
+  if (card.classList.contains("memo-card")) {
+    const item = state.memos.find(memo => memo.id === card.dataset.id);
+    return item ? { item, list: sortedMemos(state.memos.filter(memo => Boolean(memo.pinned) === Boolean(item.pinned))) } : null;
+  }
+  if (card.classList.contains("task-card")) {
+    const { task, project } = findTask(card);
+    return task ? { item: task, list: taskOrderBucket(task, project) } : null;
+  }
+  if (card.classList.contains("project-card")) {
+    const entry = findProject(state.projects, card.dataset.projectId);
+    const item = entry?.project;
+    return item ? { item, list: entry.siblings.filter(project => project.status === item.status && Boolean(project.pinned) === Boolean(item.pinned)).sort((a, b) => (a.order ?? 0) - (b.order ?? 0)) } : null;
+  }
+  return null;
+}
+
+function clearReorderGesture() {
+  if (!reorderGesture) return;
+  clearTimeout(reorderGesture.timer);
+  reorderGesture.card?.classList.remove("is-dragging");
+  reorderGesture.targetCard?.classList.remove("drag-target");
+  document.body.classList.remove("is-reordering");
+  reorderGesture = null;
+}
+
+document.addEventListener("pointerdown", event => {
+  if (event.button !== 0 || event.target.closest(".task-menu, .project-menu, .memo-menu, .complete-button, .more-button, .project-toggle, .project-complete-button")) return;
+  const card = event.target.closest(".task-card, .project-card, .memo-card");
+  const source = card ? reorderSource(card) : null;
+  if (!source || source.list.length < 2 || !source.list.includes(source.item)) return;
+  reorderGesture = { pointerId: event.pointerId, card, source, startX: event.clientX, startY: event.clientY, active: false, targetCard: null };
+  reorderGesture.timer = setTimeout(() => {
+    if (!reorderGesture || reorderGesture.pointerId !== event.pointerId) return;
+    reorderGesture.active = true;
+    reorderGesture.card.classList.add("is-dragging");
+    document.body.classList.add("is-reordering");
+    closeOpenMenus();
+    navigator.vibrate?.(20);
+  }, 460);
+}, { capture: true });
+
+document.addEventListener("pointermove", event => {
+  if (!reorderGesture || reorderGesture.pointerId !== event.pointerId) return;
+  if (!reorderGesture.active) {
+    if (Math.hypot(event.clientX - reorderGesture.startX, event.clientY - reorderGesture.startY) > 10) clearReorderGesture();
+    return;
+  }
+  event.preventDefault();
+  const candidate = document.elementFromPoint(event.clientX, event.clientY)?.closest(".task-card, .project-card, .memo-card");
+  const candidateId = candidate?.classList.contains("project-card") ? candidate.dataset.projectId : candidate?.dataset.id;
+  const target = reorderGesture.source.list.find(item => item.id === candidateId);
+  if (!candidate || !target || target === reorderGesture.source.item) return;
+  reorderGesture.targetCard?.classList.remove("drag-target");
+  reorderGesture.targetCard = candidate;
+  candidate.classList.add("drag-target");
+}, { passive: false });
+
+function finishReorder(event) {
+  if (!reorderGesture || reorderGesture.pointerId !== event.pointerId) return;
+  const gesture = reorderGesture;
+  if (!gesture.active) { clearReorderGesture(); return; }
+  event.preventDefault();
+  suppressReorderClick = true;
+  const candidateId = gesture.targetCard?.classList.contains("project-card") ? gesture.targetCard.dataset.projectId : gesture.targetCard?.dataset.id;
+  const from = gesture.source.list.indexOf(gesture.source.item);
+  const to = gesture.source.list.findIndex(item => item.id === candidateId);
+  clearReorderGesture();
+  if (from >= 0 && to >= 0 && from !== to) {
+    gesture.source.list.splice(from, 1);
+    gesture.source.list.splice(to, 0, gesture.source.item);
+    gesture.source.list.forEach((item, order) => { item.order = order; });
+    saveState();
+    toast("顺序已调整");
+  } else {
+    toast("长按后拖到另一项即可调整顺序");
+  }
+  setTimeout(() => { suppressReorderClick = false; }, 0);
+}
+
+document.addEventListener("pointerup", finishReorder, { capture: true });
+document.addEventListener("pointercancel", clearReorderGesture, { capture: true });
+document.addEventListener("click", event => {
+  if (!suppressReorderClick) return;
+  event.preventDefault();
+  event.stopImmediatePropagation();
+  suppressReorderClick = false;
+}, { capture: true });
 
 function handleTaskAction(event) {
   const button = event.target.closest("[data-action]");
@@ -461,9 +586,9 @@ function toast(message) {
 }
 
 function closeOpenMenus(except = null) {
-  $$(".menu-open, .project-menu-open").forEach(card => {
+  $$(".menu-open, .project-menu-open, .memo-menu-open").forEach(card => {
     if (card === except) return;
-    card.classList.remove("menu-open", "project-menu-open");
+    card.classList.remove("menu-open", "project-menu-open", "memo-menu-open");
   });
 }
 
@@ -501,6 +626,19 @@ $("#project-form").addEventListener("submit", event => {
   $("#project-dialog").close(); $("#project-form").reset(); saveState(); toast("项目已创建");
 });
 
+$("#memo-form").addEventListener("submit", event => {
+  event.preventDefault();
+  const existing = state.memos.find(memo => memo.id === $("#memo-id").value);
+  const memo = existing || { id: createId("memo"), order: state.memos.length, createdAt: Date.now() };
+  const pinned = $("#memo-pinned").checked;
+  if (existing && Boolean(existing.pinned) !== pinned) memo.order = state.memos.filter(item => item !== memo && Boolean(item.pinned) === pinned).length;
+  Object.assign(memo, { content: $("#memo-content").value.trim(), notes: $("#memo-notes").value.trim(), pinned });
+  if (!existing) state.memos.push(memo);
+  $("#memo-dialog").close();
+  saveState();
+  toast(existing ? "随笔修改已保存" : "随笔已添加");
+});
+
 $("#task-reminder").addEventListener("change", event => updateReminderFields(event.target.value));
 $("#add-reminder-slot").addEventListener("click", () => {
   renderReminderSlots([...readReminderSlots(), { start: "", end: "", interval: 30, unit: "minute" }]);
@@ -525,8 +663,8 @@ $("#task-node").addEventListener("input", event => {
 });
 
 document.addEventListener("click", event => {
-  const menuToggle = event.target.closest("[data-action=menu], [data-action=project-menu]");
-  closeOpenMenus(menuToggle?.closest(".task-card, .project-card") || null);
+  const menuToggle = event.target.closest("[data-action=menu], [data-action=project-menu], [data-memo-action=menu]");
+  closeOpenMenus(menuToggle?.closest(".task-card, .project-card, .memo-card") || null);
   const tab = event.target.closest(".tab");
   if (tab) {
     activeView = tab.dataset.view;
@@ -537,6 +675,7 @@ document.addEventListener("click", event => {
   const add = event.target.closest(".add-button");
   if (add) {
     if (add.dataset.action === "add-project") openProjectDialog();
+    else if (add.dataset.action === "add-memo" || add.dataset.kind === "memo") openMemoDialog();
     else openTaskDialog(add.dataset.kind || "todo");
   }
   const inline = event.target.closest(".add-inline");
@@ -555,6 +694,32 @@ document.addEventListener("click", event => {
     renderSchedules();
   }
   if (event.target.closest(".task-card")) handleTaskAction(event);
+  const memoCard = event.target.closest(".memo-card");
+  const memoAction = event.target.closest("[data-memo-action]");
+  if (memoCard && memoAction) {
+    const memo = state.memos.find(item => item.id === memoCard.dataset.id);
+    if (!memo) return;
+    const action = memoAction.dataset.memoAction;
+    if (action === "menu") memoCard.classList.toggle("memo-menu-open");
+    if (action === "edit") openMemoDialog(memo);
+    if (action === "move-up" || action === "move-down") {
+      const list = sortedMemos(state.memos.filter(item => Boolean(item.pinned) === Boolean(memo.pinned)));
+      const moved = moveItem(list, memo, action === "move-up" ? -1 : 1);
+      toast(moved ? (action === "move-up" ? "随笔已上移" : "随笔已下移") : (action === "move-up" ? "已经是本组第一篇" : "已经是本组最后一篇"));
+      saveState();
+    }
+    if (action === "pin") {
+      memo.pinned = !memo.pinned;
+      memo.order = state.memos.filter(item => item !== memo && Boolean(item.pinned) === Boolean(memo.pinned)).length;
+      saveState();
+      toast(memo.pinned ? "随笔已置顶" : "已取消置顶");
+    }
+    if (action === "delete" && confirm("确定删除这篇随笔吗？")) {
+      state.memos.splice(state.memos.indexOf(memo), 1);
+      saveState();
+      toast("随笔已删除");
+    }
+  }
   if (event.target.closest("#add-project")) openProjectDialog();
   const filter = event.target.closest(".module-filter button");
   if (filter) {
@@ -666,8 +831,8 @@ $("#search-button").addEventListener("click", () => { $("#search-dialog").showMo
 $("#search-input").addEventListener("input", event => {
   const results = searchState(state, event.target.value);
   $("#search-results").innerHTML = results.length ? results.map(result => {
-    const label = result.type === "project" ? "项目" : result.type === "repeat" ? "重复" : result.type === "schedule" ? "日程" : result.type === "project-task" ? result.project.name : "待办";
-    const name = result.project && !result.task ? result.project.name : result.task.name;
+    const label = result.type === "project" ? "项目" : result.type === "repeat" ? "重复" : result.type === "schedule" ? "日程" : result.type === "memo" ? "随笔" : result.type === "project-task" ? result.project.name : "待办";
+    const name = result.type === "memo" ? result.memo.content : result.project && !result.task ? result.project.name : result.task.name;
     return `<button class="search-result"><span>${escapeHtml(name)}</span><small>${escapeHtml(label)}</small></button>`;
   }).join("") : `<p class="empty-note">${event.target.value ? "没有找到相关内容" : "输入关键词开始搜索"}</p>`;
 });

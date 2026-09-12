@@ -1,4 +1,4 @@
-const CACHE = "qingdan-shell-v10";
+const CACHE = "qingdan-shell-v11";
 const ASSETS = ["./", "./index.html", "./styles.css", "./src/core.mjs", "./src/cloud-sync.js", "./src/release-config.js", "./src/app.js", "./vendor/supabase.js", "./manifest.webmanifest", "./assets/qingdan-icon.svg", "./assets/qingdan-icon-192.png", "./assets/qingdan-icon-512.png"];
 
 self.addEventListener("install", event => event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(ASSETS)).then(() => self.skipWaiting())));

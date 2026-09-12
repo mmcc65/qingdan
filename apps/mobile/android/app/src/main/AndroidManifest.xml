@@ -50,5 +50,9 @@
                 android:name="android.appwidget.provider"
                 android:resource="@xml/qingdan_widget_info" />
         </receiver>
+        <service
+            android:name=".QingdanWidgetService"
+            android:exported="false"
+            android:permission="android.permission.BIND_REMOTEVIEWS" />
     </application>
 </manifest>

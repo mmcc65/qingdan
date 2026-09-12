@@ -22,6 +22,7 @@
         <button class="tab" data-view="repeat">重复 <span id="repeat-count">0</span></button>
         <button class="tab" data-view="projects">项目 <span id="project-count">0</span></button>
         <button class="tab" data-view="schedule">日程 <span id="schedule-count">0</span></button>
+        <button class="tab" data-view="memo">随笔 <span id="memo-count">0</span></button>
       </nav>
       <div class="top-actions">
         <button class="icon-button" id="search-button" title="搜索" aria-label="搜索">⌕</button>
@@ -93,6 +94,14 @@
         <div class="content-panel" id="schedule-list"></div>
         <div class="archive-panel" id="schedule-archive"></div>
       </section>
+
+      <section class="view" id="memo-view">
+        <div class="page-heading">
+          <div><p class="eyebrow">随手记录</p><h1>随笔</h1><p>记下不必当作任务的小事情，长按可直接拖动排序。</p></div>
+          <button class="primary-button add-button" data-kind="memo"><span>＋</span> 添加随笔</button>
+        </div>
+        <div class="content-panel memo-panel" id="memo-list"></div>
+      </section>
     </main>
 
     <button class="floating-add add-button" id="floating-add" data-kind="todo" aria-label="添加待办" title="添加待办">＋</button>
@@ -133,6 +142,17 @@
       <input type="hidden" id="project-parent-id">
       <label class="field"><span>项目名称</span><input id="project-name" required maxlength="60" placeholder="例如：小车项目"></label>
       <div class="dialog-actions"><button type="button" data-close="project-dialog" class="secondary-button">取消</button><button type="submit" class="primary-button">创建</button></div>
+    </form>
+  </dialog>
+
+  <dialog id="memo-dialog" class="small-dialog">
+    <form method="dialog" id="memo-form">
+      <div class="dialog-header"><div><p class="eyebrow" id="memo-dialog-kicker">新随笔</p><h2 id="memo-dialog-title">添加随笔</h2></div><button type="button" class="close-button" data-close="memo-dialog" aria-label="关闭">×</button></div>
+      <input type="hidden" id="memo-id">
+      <label class="field"><span>内容</span><textarea id="memo-content" required rows="4" maxlength="1000" autocomplete="off" placeholder="想记下什么？"></textarea></label>
+      <label class="field"><span>备注 <em>可选</em></span><textarea id="memo-notes" rows="3" maxlength="2000" placeholder="补充更多细节"></textarea></label>
+      <label class="check-row"><input type="checkbox" id="memo-pinned"><span>置顶这篇随笔</span></label>
+      <div class="dialog-actions"><button type="button" data-close="memo-dialog" class="secondary-button">取消</button><button type="submit" class="primary-button">保存</button></div>
     </form>
   </dialog>
 
