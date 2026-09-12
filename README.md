@@ -4,7 +4,7 @@
 [![GitHub Release](https://img.shields.io/github/v/release/mmcc65/qingdan?display_name=tag)](https://github.com/mmcc65/qingdan/releases/latest)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
-清单是一款面向个人使用的本地优先任务与日程管理工具，支持 Web、Windows、Android 和可安装 Android APK 的 HarmonyOS 设备。
+清单是一款面向个人使用的本地优先事项与随笔记录工具，支持 Web、Windows、Android 和可安装 Android APK 的 HarmonyOS 设备。
 
 它把不同类型的事情分开管理：临时事项放进待办，周期事务放进重复任务，复杂目标拆成多级项目，当天行程安排在日程中，不属于任务的小事记进随笔。任务可以设置节点、备注、优先级和提醒；Windows 与手机端负责系统级提醒，Android 桌面组件还能直接切换查看各类事项。
 
@@ -31,21 +31,25 @@
 
 ## 界面预览
 
-### 待办：重要、普通、随后分栏
+### 待办：重要、普通、随后分栏与长按排序
 
-![清单 v0.8.0 待办界面](docs/images/qingdan-v080-todo.png)
+![清单 v0.10.0 待办界面](docs/images/qingdan-v0100-todo.png)
 
 ### 项目：大项目、子项目和各层任务
 
-![清单 v0.8.0 项目与子项目界面](docs/images/qingdan-v080-project.png)
+![清单 v0.10.0 项目与子项目界面](docs/images/qingdan-v0100-project.png)
 
 ### 日程：按日期查看当天行程和提醒
 
-![清单 v0.8.0 日程总览界面](docs/images/qingdan-v080-schedule.png)
+![清单 v0.10.0 日程总览界面](docs/images/qingdan-v0100-schedule.png)
 
-### 手机端：完整功能与移动端布局
+### 随笔：编号、备注、置顶和排序
 
-<p align="center"><img src="docs/images/qingdan-v080-mobile.png" alt="清单 v0.8.0 手机界面" width="390"></p>
+![清单 v0.10.0 随笔界面](docs/images/qingdan-v0100-memo.png)
+
+### 手机端：五个模块与移动端布局
+
+<p align="center"><img src="docs/images/qingdan-v0100-mobile.png" alt="清单 v0.10.0 手机随笔界面" width="390"></p>
 
 ## 工作方式
 

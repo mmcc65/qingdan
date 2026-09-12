@@ -65,7 +65,7 @@ const server = http.createServer((req, res) => {
     await desktop.locator("#schedule-list .task-card", { hasText: "未来自动化日程" }).waitFor();
     await desktop.evaluate(() => scrollTo(0, 0));
     await desktop.waitForTimeout(150);
-    await desktop.screenshot({ path: path.join(output, "qingdan-schedule.png"), fullPage: true });
+    await desktop.screenshot({ path: path.join(output, "qingdan-schedule.png") });
     await scheduleCard.locator("[data-action=complete]").click();
     if (await desktop.locator("#schedule-overview-count").textContent() !== "1" || await desktop.locator("#schedule-count").textContent() !== "0") throw new Error("Schedule overview or today badge did not update after completion");
     await desktop.click(".module-filter[data-module=schedule] button[data-status=active]");
@@ -118,7 +118,9 @@ const server = http.createServer((req, res) => {
     await desktop.locator(".project-detail").getByText("子项目自动化任务").waitFor();
     await desktop.locator(".project-detail [data-action=back-to-projects]").click();
     await completedProject.locator("[data-action=restore-project]").click();
-    await desktop.screenshot({ path: path.join(output, "qingdan-subprojects.png"), fullPage: true });
+    await desktop.evaluate(() => scrollTo(0, 0));
+    await desktop.waitForTimeout(250);
+    await desktop.screenshot({ path: path.join(output, "qingdan-subprojects.png") });
     await desktop.click("button[data-view=todo]");
     await desktop.click("#settings-button");
     await desktop.fill("#cloud-url", "not-a-project-url");
@@ -220,7 +222,10 @@ const server = http.createServer((req, res) => {
     await desktop.mouse.up();
     const draggedMemoOrder = await desktop.locator(".memo-content").allTextContents();
     if (draggedMemoOrder[0] !== "置顶随笔 A" || draggedMemoOrder[1] !== "置顶随笔 B") throw new Error(`Long-press memo order was not applied: ${JSON.stringify(draggedMemoOrder)}`);
-    await desktop.screenshot({ path: path.join(output, "qingdan-memo.png"), fullPage: true });
+    await desktop.reload({ waitUntil: "networkidle" });
+    await desktop.click("button[data-view=memo]");
+    await desktop.waitForTimeout(350);
+    await desktop.screenshot({ path: path.join(output, "qingdan-memo.png") });
     if (errors.length) throw new Error(`Page errors: ${errors.join("; ")}`);
 
     const mobile = await browser.newPage({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 1 });
@@ -241,7 +246,13 @@ const server = http.createServer((req, res) => {
     if (await floatingAdd.getAttribute("aria-label") !== "添加随笔") throw new Error("Mobile add button did not switch to memo mode");
     await floatingAdd.click();
     if (await mobile.locator("#memo-dialog").evaluate(dialog => !dialog.open)) throw new Error("Mobile memo add button did not open memo dialog");
-    await mobile.locator("#memo-dialog .close-button").click();
+    await mobile.fill("#memo-content", "路上想到：周末整理书架");
+    await mobile.fill("#memo-notes", "先把不再看的书整理出来");
+    await mobile.check("#memo-pinned");
+    await mobile.click("#memo-form button[type=submit]");
+    await mobile.locator(".memo-card", { hasText: "路上想到：周末整理书架" }).waitFor();
+    await mobile.waitForTimeout(350);
+    await mobile.screenshot({ path: path.join(output, "qingdan-mobile-memo.png"), fullPage: true });
     await mobile.click("button[data-view=projects]");
     if (await floatingAdd.getAttribute("aria-label") !== "新建项目") throw new Error("Mobile add button did not switch to project mode");
     await floatingAdd.click();
