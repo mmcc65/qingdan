@@ -1,0 +1,27 @@
+{
+  "forms": [
+    {
+      "name": "QingdanCard",
+      "displayName": "$string:widget_display_name",
+      "description": "$string:widget_desc",
+      "src": "./ets/widget/pages/QingdanCard.ets",
+      "uiSyntax": "arkts",
+      "window": {
+        "designWidth": 720,
+        "autoDesignWidth": true
+      },
+      "colorMode": "auto",
+      "isDefault": true,
+      "updateEnabled": true,
+      "updateDuration": 0,
+      "defaultDimension": "4*4",
+      "supportDimensions": ["2*4", "4*4", "6*4"],
+      "formConfigAbility": "ability://EntryAbility",
+      "dataProxyEnabled": false,
+      "isDynamic": true,
+      "transparencyEnabled": false,
+      "fontScaleFollowSystem": true,
+      "supportShapes": ["rect"]
+    }
+  ]
+}

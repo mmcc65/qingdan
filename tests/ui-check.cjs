@@ -236,7 +236,16 @@ const server = http.createServer((req, res) => {
     if (await floatingAdd.getAttribute("aria-label") !== "添加重复任务") throw new Error("Mobile add button did not switch to repeat mode");
     await floatingAdd.click();
     if (await mobile.locator("#task-dialog").evaluate(dialog => !dialog.open || !dialog.classList.contains("is-repeat"))) throw new Error("Mobile repeat add button did not open a repeat task dialog");
-    await mobile.locator("#task-dialog .close-button").click();
+    await mobile.fill("#task-name", "多时间重复任务");
+    await mobile.locator("#repeat-schedules [data-repeat-field=time]").fill("09:00");
+    await mobile.click("#add-repeat-schedule");
+    if (await mobile.locator("#repeat-schedules .repeat-schedule").count() !== 2) throw new Error("Repeat task did not add a second schedule");
+    await mobile.locator("#repeat-schedules .repeat-schedule").nth(1).locator("[data-repeat-field=rule]").selectOption("每周");
+    await mobile.locator("#repeat-schedules .repeat-schedule").nth(1).locator("[data-repeat-field=time]").fill("18:00");
+    await mobile.click("#task-form button[type=submit]");
+    const repeatState = await mobile.evaluate(() => JSON.parse(localStorage.getItem("qingdan.state.v1")).tasks.find(task => task.name === "多时间重复任务"));
+    if (!repeatState || JSON.stringify(repeatState.repeatSchedules) !== JSON.stringify([{ rule: "每周", time: "09:00" }, { rule: "每周", time: "18:00" }])) throw new Error(`Multiple repeat schedules were not persisted: ${JSON.stringify(repeatState)}`);
+    await mobile.getByText("多时间重复任务").waitFor();
     await mobile.click("button[data-view=schedule]");
     if (await floatingAdd.getAttribute("aria-label") !== "添加日程") throw new Error("Mobile add button did not switch to schedule mode");
     await floatingAdd.click();

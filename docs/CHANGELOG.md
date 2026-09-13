@@ -2,6 +2,18 @@
 
 本项目从公开预览版开始遵循语义化版本号。
 
+## [0.11.0] - 2026-09-13
+
+### 新功能
+
+- 重复任务可添加多条独立的“重复规则 + 执行时间”，例如每天 09:00 与每天 18:00；规则可混合每天、工作日、每周、每月与每两周
+- 新增 HarmonyOS NEXT 原生客户端工程：复用共享网页界面，并提供可滚动、可完成任务的 Form Kit 桌面服务卡片
+
+### 发布
+
+- Android/HarmonyOS `versionCode` 提升至 20
+- 同步发布 Windows、Android/HarmonyOS 安装包和应用内更新清单；HarmonyOS NEXT 原生 HAP 工程随源码提供
+
 ## [0.10.0] - 2026-09-12
 
 ### 新功能
@@ -221,6 +233,7 @@
 [0.7.0]: https://github.com/mmcc65/qingdan/releases/tag/v0.7.0
 [0.7.1]: https://github.com/mmcc65/qingdan/releases/tag/v0.7.1
 [0.10.0]: https://github.com/mmcc65/qingdan/releases/tag/v0.10.0
+[0.11.0]: https://github.com/mmcc65/qingdan/releases/tag/v0.11.0
 [0.9.1]: https://github.com/mmcc65/qingdan/releases/tag/v0.9.1
 [0.9.0]: https://github.com/mmcc65/qingdan/releases/tag/v0.9.0
 [0.8.0]: https://github.com/mmcc65/qingdan/releases/tag/v0.8.0

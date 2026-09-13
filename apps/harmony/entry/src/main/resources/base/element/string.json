@@ -1,0 +1,33 @@
+{
+  "string": [
+    {
+      "name": "module_desc",
+      "value": "清单原生鸿蒙客户端"
+    },
+    {
+      "name": "EntryAbility_desc",
+      "value": "管理待办、重复任务、项目、日程和随笔"
+    },
+    {
+      "name": "EntryAbility_label",
+      "value": "清单"
+    },
+    {
+      "name": "FormAbility_label",
+      "value": "清单卡片"
+    },
+    {
+      "name": "FormAbility_desc",
+      "value": "在桌面查看并处理清单内容"
+    },
+    {
+      "name": "widget_display_name",
+      "value": "清单"
+    },
+    {
+      "name": "widget_desc",
+      "value": "可滑动查看待办、重复任务、项目、日程和随笔"
+    }
+  ]
+}
+

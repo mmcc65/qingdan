@@ -1,0 +1,15 @@
+{
+  "modelVersion": "6.0.2",
+  "dependencies": {},
+  "execution": {
+    "analyze": "normal",
+    "daemon": true,
+    "incremental": true,
+    "parallel": true,
+    "typeCheck": true
+  },
+  "logging": {
+    "level": "info"
+  }
+}
+

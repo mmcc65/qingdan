@@ -2,13 +2,15 @@
   "name": "qingdan",
   "private": true,
   "type": "module",
-  "version": "0.10.0",
+  "version": "0.11.0",
   "packageManager": "pnpm@11.19.0",
   "scripts": {
     "vendor:supabase": "node tools/vendor-supabase.mjs",
-    "test": "pnpm run test:core && pnpm run test:ui",
+    "sync:harmony-web": "node tools/sync-harmony-web.mjs",
+    "test": "pnpm run test:core && pnpm run test:ui && pnpm run test:harmony",
     "test:core": "node --test tests/core.test.mjs",
-    "test:ui": "node tests/ui-check.cjs"
+    "test:ui": "node tests/ui-check.cjs",
+    "test:harmony": "node tests/harmony-check.cjs"
   },
   "devDependencies": {
     "@supabase/supabase-js": "^2.57.4",

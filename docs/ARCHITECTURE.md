@@ -16,9 +16,13 @@
 
 WPF 外壳通过 WebView2 加载共享 Web 资源，C# 层负责窗口、托盘、提醒调度和更新安装。Web 与原生层通过 WebView 消息通信。
 
-## Android/HarmonyOS
+## Android
 
 Android WebView 加载构建时复制的共享资源。Java 层负责精确闹钟、通知、重启恢复、桌面小组件和 APK 更新安装，通过 JavaScript Interface 与 Web 层通信。
+
+## HarmonyOS NEXT
+
+`apps/harmony` 使用 ArkWeb 加载共享页面资源，并通过 Web Message Port 与 Preferences 双向同步。Form Kit 服务卡片直接读取本机状态，可显示待办、重复、项目、日程和随笔，并支持卡片内完成操作。
 
 ## 云端
 

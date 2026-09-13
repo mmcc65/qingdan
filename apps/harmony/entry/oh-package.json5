@@ -1,0 +1,10 @@
+{
+  "name": "entry",
+  "version": "0.11.0",
+  "description": "清单鸿蒙入口模块",
+  "main": "",
+  "author": "Qingdan",
+  "license": "MIT",
+  "dependencies": {}
+}
+

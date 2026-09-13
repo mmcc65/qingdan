@@ -1,0 +1,2 @@
+# Release obfuscation is disabled until the first native release is validated.
+
