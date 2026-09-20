@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { createInitialState, normalizeState, sortTasks, postponeDate, formatNode, searchState, flattenProjects, findProject, collectProjectTasks } from "../apps/web/src/core.mjs";
+import { createInitialState, normalizeState, sortTasks, postponeDate, formatNode, searchState, flattenProjects, findProject, collectProjectTasks, nextRepeatExecutions, normalizeRepeatReminder, repeatReminderMoments } from "../apps/web/src/core.mjs";
 import { resolveUpdateManifest, resolveUpdateManifests } from "../apps/web/src/release-config.js";
 
 test("creates a valid initial state", () => {
@@ -45,6 +45,31 @@ test("postpone presets produce expected days", () => {
 test("formats nearby nodes in plain Chinese", () => {
   const now = new Date(2026, 7, 13, 8, 0);
   assert.equal(formatNode("2026-08-14T09:30", now), "明天 09:30");
+});
+
+test("computes recurring executions from the explicit start and end dates", () => {
+  const task = {
+    node: "2026-09-23",
+    repeatEndDate: "2026-09-24",
+    repeatSchedules: [{ rule: "每天", time: "12:00" }, { rule: "每天", time: "17:50" }],
+    createdAt: new Date(2026, 8, 20).getTime()
+  };
+  const executions = nextRepeatExecutions(task, new Date(2026, 8, 20, 9, 0), 6);
+  assert.deepEqual(executions.map(item => [item.execution.getDate(), item.execution.getHours(), item.execution.getMinutes()]), [
+    [23, 12, 0], [23, 17, 50], [24, 12, 0], [24, 17, 50]
+  ]);
+});
+
+test("expands per-execution multiple reminders without passing the configured end", () => {
+  const reminder = normalizeRepeatReminder({ mode: "repeat-interval", startOffset: -30, endOffset: 10, interval: 10 });
+  const moments = repeatReminderMoments(new Date(2026, 8, 23, 12, 0), reminder);
+  assert.deepEqual(moments.map(item => `${item.getHours()}:${String(item.getMinutes()).padStart(2, "0")}`), ["11:30", "11:40", "11:50", "12:00", "12:10"]);
+});
+
+test("supports no reminder and one reminder at every recurring execution", () => {
+  const execution = new Date(2026, 8, 23, 12, 0);
+  assert.deepEqual(repeatReminderMoments(execution, { mode: "none" }), []);
+  assert.deepEqual(repeatReminderMoments(execution, { mode: "single" }).map(item => item.getTime()), [execution.getTime()]);
 });
 
 test("search includes tasks, schedules, memos, notes and nested project tasks", () => {

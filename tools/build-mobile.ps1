@@ -51,7 +51,7 @@ if (Test-Path -LiteralPath $signingProperties) {
         versionName = $versionName
         apkUrl = 'Qingdan-mobile-release.apk'
         sha256 = $releaseHash
-        notes = [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('5L+u5aSN6YeN5aSN5Lu75Yqh5omn6KGM5pe26Ze05LiN6Kem5Y+R5o+Q6YaS55qE6Zeu6aKY77ybV2luZG93cyDkuI4gQW5kcm9pZCDnjrDkvJrmjInmr4/lpKnjgIHlt6XkvZzml6XjgIHmr4/lkajjgIHmr4/mnIjjgIHmr4/kuKTlkajop4TliJnmjIHnu63mj5DphpLjgII='))
+        notes = [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('6YeN5aSN5Lu75Yqh6YeH55So54us56uL6K6+572u6aG16Z2i77yM5paw5aKe5byA5aeL5ZKM57uT5p2f5pel5pyf44CB5omn6KGM5a6J5o6S6aKE6KeI77yM5Lul5Y+K5oyJ5q+P5qyh5omn6KGM5Y2V5qyh5o+Q6YaS5oiW5Zyo5omn6KGM5YmN5ZCO5aSa5qyh5o+Q6YaS77ybV2luZG93cyDkuI4gQW5kcm9pZCDljp/nlJ/osIPluqblkIzmraXmlK/mjIHjgII='))
     } | ConvertTo-Json
     $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
     [System.IO.File]::WriteAllText((Join-Path $outputDir 'latest.json'), $releaseManifest, $utf8NoBom)

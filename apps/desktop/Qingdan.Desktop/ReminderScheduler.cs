@@ -88,7 +88,8 @@ internal sealed class ReminderScheduler
         else return;
 
         var isRepeat = GetString(task, "kind") == "repeat";
-        if (mode == "single" && isRepeat) CheckRepeatSchedules(task, projectId, now);
+        if (isRepeat && mode is "single" or "repeat-interval")
+            CheckRepeatSchedules(task, projectId, now, reminder, mode);
 
         DateTime? due = null;
         if (mode == "single")
@@ -107,6 +108,7 @@ internal sealed class ReminderScheduler
             CheckIntervalSlot(task, projectId, now, reminder, 0);
             return;
         }
+        else if (mode == "repeat-interval") return;
 
         if (due is null || due > now || now - due > TimeSpan.FromHours(24)) return;
         var occurrenceKey = $"{projectId}|{taskId}|{due.Value.Ticks}";
@@ -116,12 +118,14 @@ internal sealed class ReminderScheduler
         ShowReminder(new ReminderInfo(taskId, projectId, name, ParseDate(GetString(task, "node")), occurrenceKey, signature));
     }
 
-    private void CheckRepeatSchedules(JsonElement task, string? projectId, DateTime now)
+    private void CheckRepeatSchedules(JsonElement task, string? projectId, DateTime now, JsonElement reminder, string mode)
     {
         if (!task.TryGetProperty("repeatSchedules", out var schedules) || schedules.ValueKind != JsonValueKind.Array) return;
         var taskId = GetString(task, "id");
         var name = GetString(task, "name");
         var anchor = RepeatAnchor(task, now);
+        var endDate = ParseDate(GetString(task, "repeatEndDate"))?.Date;
+        var reminderOffsets = RepeatReminderOffsets(reminder, mode);
         var scheduleIndex = 0;
         foreach (var schedule in schedules.EnumerateArray())
         {
@@ -133,26 +137,46 @@ internal sealed class ReminderScheduler
             }
 
             DateTime? due = null;
-            for (var daysBack = 0; daysBack <= 1; daysBack++)
+            DateTime? executionAt = null;
+            for (var dayOffset = -2; dayOffset <= 2; dayOffset++)
             {
-                var date = now.Date.AddDays(-daysBack);
-                if (date < anchor || !MatchesRepeatRule(GetString(schedule, "rule"), anchor, date)) continue;
-                var candidate = date.Add(time);
-                if (candidate <= now && now - candidate <= TimeSpan.FromHours(24) && (due is null || candidate > due))
-                    due = candidate;
+                var date = now.Date.AddDays(dayOffset);
+                if (date < anchor || endDate is not null && date > endDate.Value || !MatchesRepeatRule(GetString(schedule, "rule"), anchor, date)) continue;
+                var execution = date.Add(time);
+                foreach (var offset in reminderOffsets)
+                {
+                    var candidate = execution.AddMinutes(offset);
+                    if (candidate <= now && now - candidate <= TimeSpan.FromHours(24) && (due is null || candidate > due))
+                    {
+                        due = candidate;
+                        executionAt = execution;
+                    }
+                }
             }
 
-            if (due is not null)
+            if (due is not null && executionAt is not null)
             {
-                var occurrenceKey = $"{projectId}|{taskId}|repeat|{scheduleIndex}|{due.Value.Ticks}";
+                var occurrenceKey = $"{projectId}|{taskId}|repeat|{scheduleIndex}|{executionAt.Value.Ticks}|{due.Value.Ticks}";
                 if (_handledOccurrences.Add(occurrenceKey))
                 {
                     var signature = _taskSignatures.GetValueOrDefault(TaskKey(taskId, projectId), "");
-                    ShowReminder(new ReminderInfo(taskId, projectId, name, due, occurrenceKey, signature));
+                    ShowReminder(new ReminderInfo(taskId, projectId, name, executionAt, occurrenceKey, signature));
                 }
             }
             scheduleIndex++;
         }
+    }
+
+    private static List<int> RepeatReminderOffsets(JsonElement reminder, string mode)
+    {
+        if (mode == "single") return [0];
+        var start = Math.Clamp(GetInt(reminder, "startOffset", -30), -1440, 1440);
+        var end = Math.Clamp(GetInt(reminder, "endOffset", 0), start, 1440);
+        var interval = Math.Clamp(GetInt(reminder, "interval", 10), 1, 1440);
+        var result = new List<int>();
+        for (var offset = start; offset <= end && result.Count < 300; offset += interval) result.Add(offset);
+        if (result.Count == 0 || result[^1] != end) result.Add(end);
+        return result;
     }
 
     private static DateTime RepeatAnchor(JsonElement task, DateTime now)
@@ -307,7 +331,8 @@ internal sealed class ReminderScheduler
         var node = GetString(task, "node");
         var reminder = task.TryGetProperty("reminder", out var reminderElement) ? reminderElement.GetRawText() : "";
         var repeatSchedules = task.TryGetProperty("repeatSchedules", out var repeatElement) ? repeatElement.GetRawText() : "";
-        result[TaskKey(id, projectId)] = $"{node}|{reminder}|{repeatSchedules}";
+        var repeatEndDate = GetString(task, "repeatEndDate");
+        result[TaskKey(id, projectId)] = $"{node}|{repeatEndDate}|{reminder}|{repeatSchedules}";
     }
 }
 

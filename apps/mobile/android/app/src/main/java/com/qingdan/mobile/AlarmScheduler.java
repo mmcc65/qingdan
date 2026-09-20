@@ -56,8 +56,8 @@ final class AlarmScheduler {
             if (reminder == null) continue;
             String mode = reminder.optString("mode", "none");
             boolean repeatTask = "repeat".equals(task.optString("kind"));
-            if ("single".equals(mode) && repeatTask) {
-                scheduleRepeatSchedules(context, task, scheduled);
+            if (repeatTask && ("single".equals(mode) || "repeat-interval".equals(mode))) {
+                scheduleRepeatSchedules(context, task, reminder, scheduled);
             }
             int id = task.optString("id", task.optString("name")).hashCode() & 0x7fffffff;
             long trigger = 0;
@@ -80,6 +80,8 @@ final class AlarmScheduler {
                     }
                 }
                 continue;
+            } else if ("repeat-interval".equals(mode)) {
+                continue;
             }
             if (trigger == 0) continue;
             try {
@@ -92,7 +94,7 @@ final class AlarmScheduler {
         }
     }
 
-    private static void scheduleRepeatSchedules(Context context, JSONObject task,
+    private static void scheduleRepeatSchedules(Context context, JSONObject task, JSONObject reminder,
                                                 List<Integer> scheduled) {
         JSONArray schedules = task.optJSONArray("repeatSchedules");
         if (schedules == null) return;
@@ -101,7 +103,7 @@ final class AlarmScheduler {
             JSONObject repeatSchedule = schedules.optJSONObject(scheduleIndex);
             if (repeatSchedule == null) continue;
             int id = repeatSlotId(task, scheduleIndex);
-            long occurrenceAt = nextRepeatOccurrence(task, repeatSchedule,
+            long occurrenceAt = nextRepeatReminder(task, repeatSchedule, reminder,
                     StateStore.deliveredAt(context, id));
             long trigger = catchUpOrFuture(occurrenceAt);
             if (trigger == 0) continue;
@@ -126,12 +128,13 @@ final class AlarmScheduler {
                         || !"active".equals(task.optString("status", "active"))
                         || !"repeat".equals(task.optString("kind"))) continue;
                 JSONObject reminder = task.optJSONObject("reminder");
-                if (reminder == null || !"single".equals(reminder.optString("mode"))) return;
+                String mode = reminder == null ? "none" : reminder.optString("mode");
+                if (!"single".equals(mode) && !"repeat-interval".equals(mode)) return;
                 JSONArray schedules = task.optJSONArray("repeatSchedules");
                 JSONObject repeatSchedule = schedules == null ? null : schedules.optJSONObject(scheduleIndex);
                 if (repeatSchedule == null) return;
                 int id = repeatSlotId(task, scheduleIndex);
-                long occurrenceAt = nextRepeatOccurrence(task, repeatSchedule,
+                long occurrenceAt = nextRepeatReminder(task, repeatSchedule, reminder,
                         StateStore.deliveredAt(context, id));
                 long trigger = catchUpOrFuture(occurrenceAt);
                 if (trigger > 0) {
@@ -144,7 +147,8 @@ final class AlarmScheduler {
         }
     }
 
-    private static long nextRepeatOccurrence(JSONObject task, JSONObject schedule, long deliveredAt) {
+    private static long nextRepeatReminder(JSONObject task, JSONObject schedule,
+                                           JSONObject reminder, long deliveredAt) {
         LocalTime time;
         try {
             time = LocalTime.parse(schedule.optString("time"));
@@ -153,24 +157,56 @@ final class AlarmScheduler {
         }
         LocalDate today = LocalDate.now();
         LocalDate anchor = repeatAnchor(task, today);
-        LocalDate firstDate = today.minusDays(1);
+        LocalDate endDate = parseLocalDate(task.optString("repeatEndDate"));
+        LocalDate firstDate = today.minusDays(2);
         if (firstDate.isBefore(anchor)) firstDate = anchor;
+        List<Integer> reminderOffsets = repeatReminderOffsets(reminder);
+        long now = System.currentTimeMillis();
         long earliestAllowed = System.currentTimeMillis() - CATCH_UP_WINDOW_MS;
+        long latestOverdue = 0;
+        long earliestFuture = 0;
         String rule = schedule.optString("rule");
-        for (int offset = 0; offset <= 400; offset++) {
+        for (int offset = 0; offset <= 1462; offset++) {
             LocalDate date = firstDate.plusDays(offset);
+            if (endDate != null && date.isAfter(endDate)) break;
             if (!matchesRepeatRule(rule, anchor, date)) continue;
-            long candidate = date.atTime(time).atZone(ZoneId.systemDefault()).toInstant().toEpochMilli();
-            if (candidate > deliveredAt && candidate >= earliestAllowed) return candidate;
+            long executionAt = date.atTime(time).atZone(ZoneId.systemDefault()).toInstant().toEpochMilli();
+            for (int reminderOffset : reminderOffsets) {
+                long candidate = executionAt + reminderOffset * 60_000L;
+                if (candidate <= deliveredAt || candidate < earliestAllowed) continue;
+                if (candidate <= now) latestOverdue = Math.max(latestOverdue, candidate);
+                else if (earliestFuture == 0 || candidate < earliestFuture) earliestFuture = candidate;
+            }
+            if (latestOverdue > 0 && date.isAfter(today)) break;
+            if (latestOverdue == 0 && earliestFuture > 0 && date.isAfter(today.plusDays(1))) break;
         }
-        return 0;
+        return latestOverdue > 0 ? latestOverdue : earliestFuture;
+    }
+
+    private static List<Integer> repeatReminderOffsets(JSONObject reminder) {
+        List<Integer> offsets = new ArrayList<>();
+        if ("single".equals(reminder.optString("mode"))) {
+            offsets.add(0);
+            return offsets;
+        }
+        int start = Math.max(-1440, Math.min(1440, reminder.optInt("startOffset", -30)));
+        int end = Math.max(start, Math.min(1440, reminder.optInt("endOffset", 0)));
+        int interval = Math.max(1, Math.min(1440, reminder.optInt("interval", 10)));
+        for (int offset = start; offset <= end && offsets.size() < 300; offset += interval) {
+            offsets.add(offset);
+        }
+        if (offsets.isEmpty() || offsets.get(offsets.size() - 1) != end) offsets.add(end);
+        return offsets;
     }
 
     private static LocalDate repeatAnchor(JSONObject task, LocalDate fallback) {
         String node = task.optString("node");
         if (!node.isBlank()) {
             try { return LocalDateTime.parse(node).toLocalDate(); }
-            catch (DateTimeParseException ignored) { }
+            catch (DateTimeParseException ignored) {
+                LocalDate date = parseLocalDate(node);
+                if (date != null) return date;
+            }
         }
         long createdAt = task.optLong("createdAt", 0);
         if (createdAt > 0) {
@@ -178,6 +214,12 @@ final class AlarmScheduler {
             catch (RuntimeException ignored) { }
         }
         return fallback;
+    }
+
+    private static LocalDate parseLocalDate(String value) {
+        if (value == null || value.isBlank()) return null;
+        try { return LocalDate.parse(value.substring(0, Math.min(10, value.length()))); }
+        catch (DateTimeParseException | IndexOutOfBoundsException ignored) { return null; }
     }
 
     private static boolean matchesRepeatRule(String rule, LocalDate anchor, LocalDate date) {

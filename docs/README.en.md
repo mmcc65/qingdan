@@ -4,7 +4,7 @@ Qingdan is a local-first personal task and schedule manager for Web, Windows, An
 
 Tasks can carry priorities, due nodes, notes, and single or interval reminders. Native Windows and Android layers provide system reminders, reboot recovery, application updates, and an interactive Android home-screen widget. Data is stored locally first; optional cross-device sync connects to a Supabase project controlled by the user.
 
-The current version is `0.11.1 Beta`. See the [Chinese README](../README.md) for complete installation, self-hosting, development, privacy, and release instructions.
+The current version is `0.12.0 Beta`. See the [Chinese README](../README.md) for complete installation, self-hosting, development, privacy, and release instructions.
 
 [Download the latest release](https://github.com/mmcc65/qingdan/releases/latest) · [Architecture](ARCHITECTURE.md) · [Report an issue](https://github.com/mmcc65/qingdan/issues)
 
@@ -21,17 +21,17 @@ The current version is `0.11.1 Beta`. See the [Chinese README](../README.md) for
 | Module | Included capabilities |
 | --- | --- |
 | Todos | Important/normal/later priorities, due nodes, notes, pinning, postponement, completion, cancellation, restore, and permanent deletion |
-| Recurring tasks | Daily, weekday, weekly, monthly, and biweekly rules with separate completion and skip history |
+| Recurring tasks | A dedicated planner with start/end dates, multiple rule-and-time schedules, upcoming-occurrence previews, and reminders tied to every execution |
 | Projects | Nested projects, project tasks, aggregate progress, collapse, pin, rename, and per-project archives |
 | Schedule | A date-grouped overview of all unfinished itineraries from today onward; the main badge counts today, while active/completed/cancelled views follow the selected date |
-| Reminders | Single or interval schedules; native Windows reminder windows; Android exact alarms, catch-up, and rescheduling after reboot or time changes |
+| Reminders | Single or interval schedules for ordinary tasks; recurring tasks can notify once at every execution or repeatedly from before to after it; native Windows reminder windows; Android exact alarms, catch-up, and rescheduling after reboot or time changes |
 | Search and history | Search active task names, notes, and projects; separate completed/cancelled/skipped records |
 | Sync | Local-first storage, email authentication, optional user-owned Supabase, Realtime updates, manual sync, and RLS isolation |
 | Windows | Resizable/always-on-top window, system tray, 10-minute snooze, stable shortcut, and in-app updates |
 | Android/HarmonyOS | Native notifications, reboot recovery, and a resizable interactive widget whose centered header cycles both ways through todos, recurring tasks, root projects, and today's schedule; exact-alarm permission helper and signed APK updates |
 | Web/PWA | Responsive UI, offline application-shell cache, and a framework-free static HTTP deployment |
 
-The current `0.11.1` makes those recurring execution times trigger ongoing native reminders on Windows and Android when single reminders are enabled. It also includes a native HarmonyOS NEXT client project with a Form Kit home-screen card. Sync still stores one complete state document per user and resolves versions by timestamp. Fine-grained concurrent field merging is planned rather than claimed as a current capability. Browser/PWA use does not guarantee reminders after the browser closes; use a native client for reliable background reminders.
+Version `0.12.0` gives recurring tasks their own planner instead of reusing the ordinary-task form. It supports an optional end date, multiple rule-and-time schedules, a preview of upcoming executions, and either one notification per execution or repeated notifications across a configurable before/after window. Windows and Android native schedulers use the same plan. The repository also includes a native HarmonyOS NEXT client project with a Form Kit home-screen card. Sync still stores one complete state document per user and resolves versions by timestamp. Fine-grained concurrent field merging is planned rather than claimed as a current capability. Browser/PWA use does not guarantee reminders after the browser closes; use a native client for reliable background reminders.
 
 ## User downloads
 

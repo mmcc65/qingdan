@@ -1,4 +1,4 @@
-import { PRIORITIES, createId, createInitialState, normalizeState, sortTasks, postponeDate, formatNode, isOverdue, searchState, toInputDate, flattenProjects, findProject, collectProjectTasks } from "./core.mjs";
+import { PRIORITIES, REPEAT_RULES, createId, createInitialState, normalizeState, sortTasks, postponeDate, formatNode, isOverdue, searchState, toInputDate, flattenProjects, findProject, collectProjectTasks, normalizeRepeatReminder, nextRepeatExecutions, repeatReminderMoments } from "./core.mjs";
 import { initializeCloud, getCloudConfig, saveCloudConfig, signUp, signIn, signOut, syncNow, scheduleCloudPush, isApplyingRemote } from "./cloud-sync.js";
 import { resolveUpdateManifests } from "./release-config.js";
 
@@ -11,7 +11,6 @@ let activeProjectId = "";
 let scheduleDate = dateKey(new Date());
 let reminderTimeTouched = [{ start: false, end: false }];
 const moduleStatus = { todo: "active", repeat: "active", schedule: "overview", projects: "active" };
-const REPEAT_RULES = ["每天", "每个工作日", "每周", "每月", "每隔 2 周"];
 let reorderGesture = null;
 let suppressReorderClick = false;
 let harmonyPort = null;
@@ -136,12 +135,25 @@ function archiveEmpty(status) {
 
 function taskCard(task, context = "root", projectId = "") {
   const meta = [];
-  if (task.node) meta.push(`<span class="${isOverdue(task.node) ? "overdue" : ""}">${isOverdue(task.node) ? "已过节点 · " : ""}${formatNode(task.node)}</span>`);
+  if (task.node && task.kind !== "repeat") meta.push(`<span class="${isOverdue(task.node) ? "overdue" : ""}">${isOverdue(task.node) ? "已过节点 · " : ""}${formatNode(task.node)}</span>`);
+  if (task.kind === "repeat" && task.node) meta.push(`<span>开始 ${String(task.node).slice(0, 10).replaceAll("-", "/")}</span>`);
+  if (task.kind === "repeat" && task.repeatEndDate) meta.push(`<span>结束 ${String(task.repeatEndDate).slice(0, 10).replaceAll("-", "/")}</span>`);
   const reminder = normalizeReminder(task.reminder);
-  if (reminder.mode === "single") meta.push(`<span>单次提醒</span>`);
+  if (reminder.mode === "single") meta.push(`<span>${task.kind === "repeat" ? "每次提醒一次" : "单次提醒"}</span>`);
   if (reminder.mode === "interval") meta.push(`<span>循环提醒${reminder.slots?.length > 1 ? ` · ${reminder.slots.length} 个时间段` : ` · 每 ${reminder.interval || 30} ${reminder.unit === "hour" ? "小时" : reminder.unit === "day" ? "天" : "分钟"}`}</span>`);
+  if (reminder.mode === "repeat-interval") meta.push(`<span>每次多次提醒 · 每 ${reminder.interval || 10} 分钟</span>`);
   const repeatRule = repeatRuleSummary(task);
   if (repeatRule) meta.push(`<span>${escapeHtml(repeatRule)}</span>`);
+  if (task.kind === "repeat") {
+    const now = new Date();
+    const repeatReminder = normalizeRepeatReminder(task.reminder);
+    const reminderLookback = repeatReminder.mode === "repeat-interval" ? Math.max(0, repeatReminder.endOffset) : 0;
+    const upcoming = nextRepeatExecutions(task, new Date(now.getTime() - reminderLookback * 60000), 6);
+    const nextExecution = upcoming.map(item => item.execution).find(item => item >= now);
+    const nextNotice = upcoming.flatMap(item => repeatReminderMoments(item.execution, repeatReminder)).filter(item => item >= now).sort((a, b) => a - b)[0];
+    if (nextNotice) meta.push(`<span>下次提醒 ${escapeHtml(previewDateTime(nextNotice))}</span>`);
+    else if (nextExecution) meta.push(`<span>下次执行 ${escapeHtml(previewDateTime(nextExecution))}</span>`);
+  }
   return `<article class="task-card ${task.pinned ? "pinned" : ""}" data-id="${task.id}" data-context="${context}" data-project-id="${projectId}" data-pinned="${Boolean(task.pinned)}">
     <button class="complete-button" data-action="complete" title="完成" aria-label="完成任务"></button>
     <button class="task-main" data-action="edit"><span class="task-name"><i class="dot ${task.priority}"></i>${escapeHtml(task.name)}</span>${meta.length ? `<span class="task-meta">${meta.join("")}</span>` : ""}</button>
@@ -275,9 +287,72 @@ function renderRepeatSchedules(schedules = []) {
     <div class="reminder-slot-heading"><strong>重复时间 ${index + 1}</strong>${index ? '<button type="button" class="text-button remove-repeat-schedule" data-schedule-index="' + index + '">删除</button>' : ""}</div>
     <div class="two-columns">
       <label class="field"><span>规则</span><select data-repeat-field="rule">${REPEAT_RULES.map(rule => `<option value="${rule}" ${schedule.rule === rule ? "selected" : ""}>${rule}</option>`).join("")}</select></label>
-      <label class="field"><span>执行时间 <em>可选</em></span><input type="time" data-repeat-field="time" value="${escapeHtml(schedule.time || "")}"></label>
+      <label class="field"><span>执行时间</span><input type="time" data-repeat-field="time" value="${escapeHtml(schedule.time || "")}"></label>
     </div>
   </div>`).join("");
+}
+
+function offsetFields(prefix) {
+  const relation = $(`#repeat-${prefix}-relation`).value;
+  const amount = Math.max(0, Math.min(1440, Number($(`#repeat-${prefix}-offset`).value) || 0));
+  return relation === "before" ? -amount : relation === "after" ? amount : 0;
+}
+
+function setOffsetFields(prefix, offset) {
+  const value = Number(offset) || 0;
+  $(`#repeat-${prefix}-relation`).value = value < 0 ? "before" : value > 0 ? "after" : "at";
+  $(`#repeat-${prefix}-offset`).value = Math.abs(value);
+  updateOffsetInput(prefix);
+}
+
+function updateOffsetInput(prefix) {
+  const atExecution = $(`#repeat-${prefix}-relation`).value === "at";
+  const input = $(`#repeat-${prefix}-offset`);
+  input.disabled = atExecution;
+  if (atExecution) input.value = "0";
+}
+
+function readRepeatReminder() {
+  const mode = $("#repeat-reminder-mode").value;
+  if (mode === "none") return { mode: "none" };
+  if (mode === "single") return { mode: "single" };
+  return normalizeRepeatReminder({
+    mode: "repeat-interval",
+    startOffset: offsetFields("start"),
+    endOffset: offsetFields("end"),
+    interval: Number($("#repeat-reminder-interval").value) || 10
+  });
+}
+
+function updateRepeatReminderFields() {
+  const mode = $("#repeat-reminder-mode").value;
+  $("#repeat-interval-settings").classList.toggle("visible", mode === "repeat-interval");
+  renderRepeatPreview();
+}
+
+function previewDateTime(value) {
+  return value.toLocaleString("zh-CN", { month: "numeric", day: "numeric", weekday: "short", hour: "2-digit", minute: "2-digit", hour12: false });
+}
+
+function renderRepeatPreview() {
+  const container = $("#repeat-preview-list");
+  if (!container) return;
+  const schedules = readRepeatSchedules();
+  const reminder = readRepeatReminder();
+  const draft = {
+    node: $("#repeat-start-date").value,
+    repeatEndDate: $("#repeat-end-date").value,
+    repeatSchedules: schedules,
+    createdAt: Date.now()
+  };
+  const executions = nextRepeatExecutions(draft, new Date(), 3);
+  $("#repeat-preview-status").textContent = reminder.mode === "none" ? "仅记录，不通知" : reminder.mode === "single" ? "每次通知 1 次" : "每次通知多次";
+  container.className = executions.length ? "repeat-preview-list" : "";
+  container.innerHTML = executions.length ? executions.map(item => {
+    const moments = repeatReminderMoments(item.execution, reminder);
+    const reminderText = reminder.mode === "none" ? "不提醒" : moments.map(moment => moment.toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit", hour12: false })).join("、");
+    return `<div class="repeat-preview-item"><span>${escapeHtml(previewDateTime(item.execution))}</span><small>${escapeHtml(reminderText)}</small></div>`;
+  }).join("") : '<div class="repeat-preview-empty">请填写执行时间；结束日期也不能早于下一次安排。</div>';
 }
 
 function readRepeatSchedules() {
@@ -434,12 +509,13 @@ function openMemoDialog(memo = null) {
 function openTaskDialog(kind, task = null, projectId = "", priority = "normal") {
   const dialog = $("#task-dialog");
   const isSchedule = kind === "schedule";
+  const isRepeat = kind === "repeat";
   $("#task-form").reset();
   $("#task-id").value = task?.id || "";
   $("#task-kind").value = kind;
   $("#task-project-id").value = projectId;
   $("#dialog-kicker").textContent = task ? "编辑" : isSchedule ? "新日程" : "新任务";
-  $("#dialog-title").textContent = kind === "repeat" ? "重复任务" : isSchedule ? "添加日程" : projectId ? "项目任务" : "添加待办";
+  $("#dialog-title").textContent = isRepeat ? (task ? "编辑重复计划" : "新建重复计划") : isSchedule ? "添加日程" : projectId ? "项目任务" : "添加待办";
   $("#task-name-label").textContent = isSchedule ? "行程名称" : "任务名称";
   $("#task-name").placeholder = isSchedule ? "当天准备做什么？" : "准备做什么？";
   $("#task-name").value = task?.name || "";
@@ -450,15 +526,23 @@ function openTaskDialog(kind, task = null, projectId = "", priority = "normal") 
   renderReminderSlots(reminder.slots || []);
   $("#task-reminder").value = reminder.mode;
   $("#reminder-at").value = reminder.at || "";
-  $("#single-reminder-label").innerHTML = kind === "repeat"
-    ? "额外提醒时间 <em>可选；不填则按重复执行时间提醒</em>"
-    : "提醒时间 <em>不填则使用任务节点</em>";
+  $("#single-reminder-label").innerHTML = "提醒时间 <em>不填则使用任务节点</em>";
   updateReminderFields(reminder.mode);
   $("#task-notes").value = task?.notes || "";
   $("#task-pinned").checked = Boolean(task?.pinned);
-  renderRepeatSchedules(kind === "repeat" ? normalizeRepeatSchedules(task) : []);
-  dialog.classList.toggle("is-repeat", kind === "repeat");
+  renderRepeatSchedules(isRepeat ? normalizeRepeatSchedules(task) : []);
+  dialog.classList.toggle("is-repeat", isRepeat);
   dialog.classList.toggle("is-schedule", isSchedule);
+  if (isRepeat) {
+    const repeatReminder = normalizeRepeatReminder(task?.reminder);
+    $("#repeat-start-date").value = String(task?.node || dateKey(new Date())).slice(0, 10);
+    $("#repeat-end-date").value = task?.repeatEndDate || "";
+    $("#repeat-reminder-mode").value = repeatReminder.mode;
+    setOffsetFields("start", repeatReminder.startOffset ?? -30);
+    setOffsetFields("end", repeatReminder.endOffset ?? 0);
+    $("#repeat-reminder-interval").value = repeatReminder.interval || 10;
+    updateRepeatReminderFields();
+  }
   const selectedPriority = task?.priority || priority;
   $$("input[name=priority]").forEach(input => input.checked = input.value === selectedPriority);
   dialog.showModal();
@@ -656,20 +740,38 @@ $("#task-form").addEventListener("submit", event => {
   if (!container) return;
   const existing = id ? container.find(t => t.id === id) : null;
   const task = existing || { id: createId(projectId ? "ptask" : kind === "schedule" ? "schedule" : "task"), kind, status: "active", order: container.length, createdAt: Date.now() };
-  const reminderMode = $("#task-reminder").value;
-  const reminder = reminderMode === "single"
+  const standardReminderMode = $("#task-reminder").value;
+  const standardReminder = standardReminderMode === "single"
     ? { mode: "single", at: $("#reminder-at").value }
-    : reminderMode === "interval"
+    : standardReminderMode === "interval"
       ? (() => {
         const slots = readReminderSlots();
         const first = slots[0] || { start: "", end: "", interval: 30, unit: "minute" };
         return { mode: "interval", ...first, slots };
       })()
       : { mode: "none" };
-  Object.assign(task, { name: $("#task-name").value.trim(), priority: kind === "schedule" ? "normal" : $("input[name=priority]:checked").value, node: $("#task-node").value, reminder, notes: $("#task-notes").value.trim(), pinned: kind === "schedule" ? false : $("#task-pinned").checked });
+  const isRepeat = kind === "repeat";
+  const reminder = isRepeat ? readRepeatReminder() : standardReminder;
+  const node = isRepeat ? $("#repeat-start-date").value : $("#task-node").value;
+  if (isRepeat && (!node || readRepeatSchedules().some(schedule => !schedule.time))) {
+    toast("请填写开始日期和每条安排的执行时间");
+    return;
+  }
+  if (isRepeat && $("#repeat-end-date").value && $("#repeat-end-date").value < node) {
+    toast("结束日期不能早于开始日期");
+    return;
+  }
+  if (isRepeat && $("#repeat-reminder-mode").value === "repeat-interval" && offsetFields("start") > offsetFields("end")) {
+    toast("开始提醒不能晚于结束提醒");
+    return;
+  }
+  Object.assign(task, { name: $("#task-name").value.trim(), priority: kind === "schedule" ? "normal" : $("input[name=priority]:checked").value, node, reminder, notes: $("#task-notes").value.trim(), pinned: kind === "schedule" ? false : $("#task-pinned").checked });
   if (kind === "repeat") {
     task.repeatSchedules = readRepeatSchedules();
+    task.repeatEndDate = $("#repeat-end-date").value;
     task.rule = repeatRuleSummary(task);
+  } else {
+    delete task.repeatEndDate;
   }
   if (!existing) container.push(task);
   $("#task-dialog").close(); saveState(); toast(existing ? "修改已保存" : kind === "schedule" ? "日程已添加" : "任务已添加");
@@ -698,8 +800,16 @@ $("#memo-form").addEventListener("submit", event => {
 });
 
 $("#task-reminder").addEventListener("change", event => updateReminderFields(event.target.value));
+$("#repeat-reminder-mode").addEventListener("change", updateRepeatReminderFields);
+$("#repeat-plan-panel").addEventListener("input", renderRepeatPreview);
+$("#repeat-plan-panel").addEventListener("change", event => {
+  if (event.target.id === "repeat-start-relation") updateOffsetInput("start");
+  if (event.target.id === "repeat-end-relation") updateOffsetInput("end");
+  updateRepeatReminderFields();
+});
 $("#add-repeat-schedule").addEventListener("click", () => {
   renderRepeatSchedules([...readRepeatSchedules(), { rule: "每天", time: "" }]);
+  renderRepeatPreview();
 });
 $("#repeat-schedules").addEventListener("click", event => {
   const remove = event.target.closest(".remove-repeat-schedule");
@@ -707,6 +817,7 @@ $("#repeat-schedules").addEventListener("click", event => {
   const schedules = readRepeatSchedules();
   schedules.splice(Number(remove.dataset.scheduleIndex), 1);
   renderRepeatSchedules(schedules);
+  renderRepeatPreview();
 });
 $("#add-reminder-slot").addEventListener("click", () => {
   renderReminderSlots([...readReminderSlots(), { start: "", end: "", interval: 30, unit: "minute" }]);

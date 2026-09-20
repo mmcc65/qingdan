@@ -117,24 +117,40 @@
         <label><input type="radio" name="priority" value="normal" checked><span><i class="dot normal"></i>普通</span></label>
         <label><input type="radio" name="priority" value="later"><span><i class="dot later"></i>随后</span></label>
       </div></fieldset>
-      <div class="two-columns">
+      <div class="two-columns non-repeat-only">
         <label class="field" id="task-node-field"><span id="task-node-label">节点 <em>可选</em></span><input type="datetime-local" id="task-node"></label>
       </div>
-      <div class="repeat-only repeat-schedules-field">
-        <span>重复时间</span>
+      <section class="repeat-only repeat-plan-panel" id="repeat-plan-panel">
+        <div class="repeat-panel-heading"><strong>重复计划</strong><small>执行时间和提醒在这里一次设置完成</small></div>
+        <div class="two-columns repeat-date-row">
+          <label class="field"><span>开始日期</span><input type="date" id="repeat-start-date"></label>
+          <label class="field"><span>结束日期 <em>可选</em></span><input type="date" id="repeat-end-date"></label>
+        </div>
+        <span class="repeat-section-label">执行安排</span>
         <div id="repeat-schedules"></div>
-        <button type="button" class="text-button reminder-slot-add" id="add-repeat-schedule">＋ 添加重复时间</button>
-        <p class="field-help">可添加多条，例如“每天 09:00”和“每天 18:00”；选择“单次提醒”后，Windows 和 Android 客户端会在每个执行时间提醒一次。时间留空时仅记录重复规则。</p>
-      </div>
-      <label class="field"><span>提醒</span><select id="task-reminder"><option value="none">不提醒</option><option value="single">单次提醒</option><option value="interval">循环提醒</option></select></label>
-      <div class="reminder-details" id="single-reminder-settings">
-        <label class="field"><span id="single-reminder-label">提醒时间 <em>不填则使用任务节点</em></span><input type="datetime-local" id="reminder-at"></label>
-      </div>
-      <div class="reminder-details" id="interval-reminder-settings">
-        <div id="reminder-slots"></div>
-        <button type="button" class="text-button reminder-slot-add" id="add-reminder-slot">＋ 添加提醒时间段</button>
-        <p class="field-help">每个时间段可单独设置开始、结束和提醒间隔；开始时间不填时从当前时间开始，结束时间不填时使用任务节点。</p>
-      </div>
+        <button type="button" class="text-button reminder-slot-add" id="add-repeat-schedule">＋ 添加执行安排</button>
+        <p class="field-help">每条安排都包含重复规则和执行时间，例如“每天 12:00”和“每天 17:50”。每周和每两周按开始日期所在星期执行；每月按开始日期对应的日期执行。</p>
+        <label class="field repeat-reminder-mode"><span>提醒方式</span><select id="repeat-reminder-mode"><option value="none">不提醒</option><option value="single">每次执行时提醒一次</option><option value="repeat-interval">每次执行前后提醒多次</option></select></label>
+        <div class="repeat-reminder-details" id="repeat-interval-settings">
+          <div class="repeat-offset-grid">
+            <label class="field"><span>开始提醒</span><div class="offset-control"><select id="repeat-start-relation"><option value="before">执行前</option><option value="at">执行时</option><option value="after">执行后</option></select><input type="number" id="repeat-start-offset" min="0" max="1440" value="30" inputmode="numeric"><span>分钟</span></div></label>
+            <label class="field"><span>结束提醒</span><div class="offset-control"><select id="repeat-end-relation"><option value="before">执行前</option><option value="at" selected>执行时</option><option value="after">执行后</option></select><input type="number" id="repeat-end-offset" min="0" max="1440" value="0" inputmode="numeric"><span>分钟</span></div></label>
+          </div>
+          <label class="field"><span>提醒间隔</span><div class="offset-control compact"><input type="number" id="repeat-reminder-interval" min="1" max="1440" value="10" inputmode="numeric"><span>分钟</span></div></label>
+        </div>
+        <div class="repeat-preview"><div class="repeat-panel-heading"><strong>接下来的安排</strong><small id="repeat-preview-status"></small></div><div id="repeat-preview-list"></div></div>
+      </section>
+      <section class="non-repeat-only" id="standard-reminder-section">
+        <label class="field"><span>提醒</span><select id="task-reminder"><option value="none">不提醒</option><option value="single">单次提醒</option><option value="interval">循环提醒</option></select></label>
+        <div class="reminder-details" id="single-reminder-settings">
+          <label class="field"><span id="single-reminder-label">提醒时间 <em>不填则使用任务节点</em></span><input type="datetime-local" id="reminder-at"></label>
+        </div>
+        <div class="reminder-details" id="interval-reminder-settings">
+          <div id="reminder-slots"></div>
+          <button type="button" class="text-button reminder-slot-add" id="add-reminder-slot">＋ 添加提醒时间段</button>
+          <p class="field-help">每个时间段可单独设置开始、结束和提醒间隔；开始时间不填时从当前时间开始，结束时间不填时使用任务节点。</p>
+        </div>
+      </section>
       <label class="field"><span>备注 <em>可选</em></span><textarea id="task-notes" rows="3" maxlength="1000" placeholder="补充必要信息，不显示在主列表中"></textarea></label>
       <label class="check-row" id="task-pinned-row"><input type="checkbox" id="task-pinned"><span>置顶这项任务</span></label>
       <div class="dialog-actions"><button type="button" data-close="task-dialog" class="secondary-button">取消</button><button type="submit" value="default" class="primary-button">保存</button></div>

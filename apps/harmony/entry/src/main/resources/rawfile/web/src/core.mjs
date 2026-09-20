@@ -4,6 +4,8 @@ export const PRIORITIES = [
   { id: "later", label: "随后", hint: "有空时再处理" }
 ];
 
+export const REPEAT_RULES = ["每天", "每个工作日", "每周", "每月", "每隔 2 周"];
+
 export const createId = (prefix = "item") => `${prefix}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
 
 export function createInitialState() {
@@ -94,6 +96,81 @@ export function formatNode(value, now = new Date()) {
 
 export function isOverdue(value, now = new Date()) {
   return Boolean(value && new Date(value).getTime() < now.getTime());
+}
+
+function localDate(value, fallback = null) {
+  const match = String(value || "").match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (!match) return fallback;
+  const date = new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+  return Number.isNaN(date.getTime()) ? fallback : date;
+}
+
+export function repeatAnchor(task, now = new Date()) {
+  const created = Number(task?.createdAt) ? new Date(Number(task.createdAt)) : now;
+  return localDate(task?.node, new Date(created.getFullYear(), created.getMonth(), created.getDate()));
+}
+
+export function matchesRepeatRule(rule, anchor, date) {
+  const day = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  const start = new Date(anchor.getFullYear(), anchor.getMonth(), anchor.getDate());
+  if (day < start) return false;
+  const elapsedDays = Math.round((Date.UTC(day.getFullYear(), day.getMonth(), day.getDate()) - Date.UTC(start.getFullYear(), start.getMonth(), start.getDate())) / 86400000);
+  if (rule === "每天") return true;
+  if (rule === "每个工作日") return day.getDay() >= 1 && day.getDay() <= 5;
+  if (rule === "每周") return elapsedDays % 7 === 0;
+  if (rule === "每月") return day.getDate() === start.getDate();
+  if (rule === "每隔 2 周") return elapsedDays % 14 === 0;
+  return false;
+}
+
+export function normalizeRepeatReminder(reminder) {
+  if (!reminder || reminder === "none" || reminder.mode === "none") return { mode: "none" };
+  if (reminder === "single" || reminder.mode === "single") return { mode: "single" };
+  if (typeof reminder === "object" && reminder.mode === "repeat-interval") {
+    const startOffset = Math.max(-1440, Math.min(1440, Number(reminder.startOffset) || 0));
+    const endOffset = Math.max(startOffset, Math.min(1440, Number(reminder.endOffset) || 0));
+    return { mode: "repeat-interval", startOffset, endOffset, interval: Math.max(1, Math.min(1440, Number(reminder.interval) || 10)) };
+  }
+  if (typeof reminder === "object" && reminder.mode === "interval") {
+    return { mode: "repeat-interval", startOffset: -30, endOffset: 0, interval: Math.max(1, Math.min(1440, Number(reminder.interval) || 10)) };
+  }
+  return { mode: "none" };
+}
+
+export function repeatReminderMoments(execution, reminder) {
+  const normalized = normalizeRepeatReminder(reminder);
+  if (normalized.mode === "none") return [];
+  if (normalized.mode === "single") return [new Date(execution)];
+  const moments = [];
+  for (let offset = normalized.startOffset; offset <= normalized.endOffset; offset += normalized.interval) {
+    moments.push(new Date(execution.getTime() + offset * 60000));
+    if (moments.length >= 300) break;
+  }
+  const finalAt = execution.getTime() + normalized.endOffset * 60000;
+  if (!moments.some(item => item.getTime() === finalAt)) moments.push(new Date(finalAt));
+  return moments;
+}
+
+export function nextRepeatExecutions(task, from = new Date(), count = 3) {
+  const schedules = Array.isArray(task?.repeatSchedules) ? task.repeatSchedules : [];
+  const anchor = repeatAnchor(task, from);
+  const end = localDate(task?.repeatEndDate);
+  const first = new Date(from.getFullYear(), from.getMonth(), from.getDate());
+  if (first < anchor) first.setTime(anchor.getTime());
+  const results = [];
+  for (let offset = 0; offset <= 1462 && results.length < count; offset++) {
+    const day = new Date(first.getFullYear(), first.getMonth(), first.getDate() + offset);
+    if (end && day > end) break;
+    schedules.forEach((schedule, scheduleIndex) => {
+      if (!/^\d{2}:\d{2}$/.test(schedule?.time || "") || !matchesRepeatRule(schedule.rule, anchor, day)) return;
+      const [hour, minute] = schedule.time.split(":").map(Number);
+      const execution = new Date(day.getFullYear(), day.getMonth(), day.getDate(), hour, minute);
+      if (execution >= from) results.push({ execution, scheduleIndex, rule: schedule.rule });
+    });
+    results.sort((a, b) => a.execution - b.execution || a.scheduleIndex - b.scheduleIndex);
+    if (results.length >= count) return results.slice(0, count);
+  }
+  return results.slice(0, count);
 }
 
 export function searchState(state, query) {

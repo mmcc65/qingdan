@@ -2,6 +2,24 @@
 
 本项目从公开预览版开始遵循语义化版本号。
 
+## [0.12.0] - 2026-09-20
+
+### 新功能
+
+- 重复任务改用独立设置区域，集中设置开始日期、可选结束日期、执行安排、提醒方式与未来计划预览，不再与普通任务节点混用
+- 同一重复任务可继续添加多条“规则 + 执行时间”，并在保存前预览接下来的三次执行及对应提醒时刻
+- 重复提醒新增“不提醒”“每次执行时提醒一次”“每次执行前后提醒多次”三种模式；多次模式可设置起止偏移与提醒间隔
+
+### 改进
+
+- Windows 与 Android 原生调度器同步支持每个执行时间的前后多次提醒，并兼容旧版重复任务数据
+- 支持为重复计划设置结束日期；应用卡片展示下一次执行或下一次提醒，不再将开始日期持续显示为逾期节点
+
+### 发布
+
+- Android `versionCode` 提升至 22，HarmonyOS 工程版本同步提升
+- 同步发布 Windows、Android 安装包和应用内更新清单
+
 ## [0.11.1] - 2026-09-20
 
 ### 修复
@@ -237,7 +255,6 @@
 
 - 分实体增量同步和复杂冲突合并仍在开发中
 - Windows 发布包尚未提供可信代码签名
-- 首次 GitHub Release 创建前，应用内更新地址会返回 404
 
 [0.5.5]: https://github.com/mmcc65/qingdan/releases/tag/v0.5.5
 [0.6.0]: https://github.com/mmcc65/qingdan/releases/tag/v0.6.0
@@ -245,9 +262,10 @@
 [0.6.2]: https://github.com/mmcc65/qingdan/releases/tag/v0.6.2
 [0.7.0]: https://github.com/mmcc65/qingdan/releases/tag/v0.7.0
 [0.7.1]: https://github.com/mmcc65/qingdan/releases/tag/v0.7.1
-[0.10.0]: https://github.com/mmcc65/qingdan/releases/tag/v0.10.0
-[0.11.0]: https://github.com/mmcc65/qingdan/releases/tag/v0.11.0
+[0.12.0]: https://github.com/mmcc65/qingdan/releases/tag/v0.12.0
 [0.11.1]: https://github.com/mmcc65/qingdan/releases/tag/v0.11.1
+[0.11.0]: https://github.com/mmcc65/qingdan/releases/tag/v0.11.0
+[0.10.0]: https://github.com/mmcc65/qingdan/releases/tag/v0.10.0
 [0.9.1]: https://github.com/mmcc65/qingdan/releases/tag/v0.9.1
 [0.9.0]: https://github.com/mmcc65/qingdan/releases/tag/v0.9.0
 [0.8.0]: https://github.com/mmcc65/qingdan/releases/tag/v0.8.0
