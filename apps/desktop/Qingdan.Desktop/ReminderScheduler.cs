@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text.Json;
 using System.Windows.Threading;
 
@@ -52,6 +53,8 @@ internal sealed class ReminderScheduler
             var root = document.RootElement;
             if (root.TryGetProperty("tasks", out var tasks))
                 foreach (var task in tasks.EnumerateArray()) CheckTask(task, null, now);
+            if (root.TryGetProperty("schedules", out var schedules))
+                foreach (var task in schedules.EnumerateArray()) CheckTask(task, null, now);
             if (root.TryGetProperty("projects", out var projects))
                 CheckProjects(projects, now);
             CheckSnoozed(now);
@@ -84,10 +87,14 @@ internal sealed class ReminderScheduler
         else if (reminder.ValueKind == JsonValueKind.Object) mode = GetString(reminder, "mode");
         else return;
 
+        var isRepeat = GetString(task, "kind") == "repeat";
+        if (mode == "single" && isRepeat) CheckRepeatSchedules(task, projectId, now);
+
         DateTime? due = null;
         if (mode == "single")
         {
-            due = ParseDate(GetString(reminder, "at")) ?? ParseDate(GetString(task, "node"));
+            due = ParseDate(GetString(reminder, "at"));
+            if (!isRepeat) due ??= ParseDate(GetString(task, "node"));
         }
         else if (mode == "interval")
         {
@@ -107,6 +114,72 @@ internal sealed class ReminderScheduler
         _handledOccurrences.Add(occurrenceKey);
         var signature = _taskSignatures.GetValueOrDefault(TaskKey(taskId, projectId), "");
         ShowReminder(new ReminderInfo(taskId, projectId, name, ParseDate(GetString(task, "node")), occurrenceKey, signature));
+    }
+
+    private void CheckRepeatSchedules(JsonElement task, string? projectId, DateTime now)
+    {
+        if (!task.TryGetProperty("repeatSchedules", out var schedules) || schedules.ValueKind != JsonValueKind.Array) return;
+        var taskId = GetString(task, "id");
+        var name = GetString(task, "name");
+        var anchor = RepeatAnchor(task, now);
+        var scheduleIndex = 0;
+        foreach (var schedule in schedules.EnumerateArray())
+        {
+            var timeValue = GetString(schedule, "time");
+            if (!TimeSpan.TryParseExact(timeValue, @"hh\:mm", CultureInfo.InvariantCulture, out var time))
+            {
+                scheduleIndex++;
+                continue;
+            }
+
+            DateTime? due = null;
+            for (var daysBack = 0; daysBack <= 1; daysBack++)
+            {
+                var date = now.Date.AddDays(-daysBack);
+                if (date < anchor || !MatchesRepeatRule(GetString(schedule, "rule"), anchor, date)) continue;
+                var candidate = date.Add(time);
+                if (candidate <= now && now - candidate <= TimeSpan.FromHours(24) && (due is null || candidate > due))
+                    due = candidate;
+            }
+
+            if (due is not null)
+            {
+                var occurrenceKey = $"{projectId}|{taskId}|repeat|{scheduleIndex}|{due.Value.Ticks}";
+                if (_handledOccurrences.Add(occurrenceKey))
+                {
+                    var signature = _taskSignatures.GetValueOrDefault(TaskKey(taskId, projectId), "");
+                    ShowReminder(new ReminderInfo(taskId, projectId, name, due, occurrenceKey, signature));
+                }
+            }
+            scheduleIndex++;
+        }
+    }
+
+    private static DateTime RepeatAnchor(JsonElement task, DateTime now)
+    {
+        var node = ParseDate(GetString(task, "node"));
+        if (node is not null) return node.Value.Date;
+        if (task.TryGetProperty("createdAt", out var createdAt) && createdAt.TryGetInt64(out var milliseconds))
+        {
+            try { return DateTimeOffset.FromUnixTimeMilliseconds(milliseconds).LocalDateTime.Date; }
+            catch (ArgumentOutOfRangeException) { }
+        }
+        return now.Date;
+    }
+
+    private static bool MatchesRepeatRule(string rule, DateTime anchor, DateTime date)
+    {
+        if (date < anchor) return false;
+        var elapsedDays = (date - anchor).Days;
+        return rule switch
+        {
+            "每天" => true,
+            "每个工作日" => date.DayOfWeek is not DayOfWeek.Saturday and not DayOfWeek.Sunday,
+            "每周" => elapsedDays % 7 == 0,
+            "每月" => date.Day == anchor.Day,
+            "每隔 2 周" => elapsedDays % 14 == 0,
+            _ => false
+        };
     }
 
     private void CheckIntervalSlot(JsonElement task, string? projectId, DateTime now, JsonElement slot, int slotIndex)
@@ -205,6 +278,8 @@ internal sealed class ReminderScheduler
             var root = document.RootElement;
             if (root.TryGetProperty("tasks", out var tasks))
                 foreach (var task in tasks.EnumerateArray()) AddSignature(result, task, null);
+            if (root.TryGetProperty("schedules", out var schedules))
+                foreach (var task in schedules.EnumerateArray()) AddSignature(result, task, null);
             if (root.TryGetProperty("projects", out var projects))
                 CollectProjectSignatures(result, projects);
         }
@@ -231,7 +306,8 @@ internal sealed class ReminderScheduler
         if (string.IsNullOrEmpty(id)) return;
         var node = GetString(task, "node");
         var reminder = task.TryGetProperty("reminder", out var reminderElement) ? reminderElement.GetRawText() : "";
-        result[TaskKey(id, projectId)] = $"{node}|{reminder}";
+        var repeatSchedules = task.TryGetProperty("repeatSchedules", out var repeatElement) ? repeatElement.GetRawText() : "";
+        result[TaskKey(id, projectId)] = $"{node}|{reminder}|{repeatSchedules}";
     }
 }
 

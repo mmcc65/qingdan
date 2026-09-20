@@ -124,11 +124,11 @@
         <span>重复时间</span>
         <div id="repeat-schedules"></div>
         <button type="button" class="text-button reminder-slot-add" id="add-repeat-schedule">＋ 添加重复时间</button>
-        <p class="field-help">可添加多条，例如“每天 09:00”和“每天 18:00”；也可以混合每天、每周、每月等规则。时间留空时仅记录重复规则。</p>
+        <p class="field-help">可添加多条，例如“每天 09:00”和“每天 18:00”；选择“单次提醒”后，Windows 和 Android 客户端会在每个执行时间提醒一次。时间留空时仅记录重复规则。</p>
       </div>
       <label class="field"><span>提醒</span><select id="task-reminder"><option value="none">不提醒</option><option value="single">单次提醒</option><option value="interval">循环提醒</option></select></label>
       <div class="reminder-details" id="single-reminder-settings">
-        <label class="field"><span>提醒时间 <em>不填则使用任务节点</em></span><input type="datetime-local" id="reminder-at"></label>
+        <label class="field"><span id="single-reminder-label">提醒时间 <em>不填则使用任务节点</em></span><input type="datetime-local" id="reminder-at"></label>
       </div>
       <div class="reminder-details" id="interval-reminder-settings">
         <div id="reminder-slots"></div>

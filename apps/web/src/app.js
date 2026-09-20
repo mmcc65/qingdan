@@ -450,6 +450,9 @@ function openTaskDialog(kind, task = null, projectId = "", priority = "normal") 
   renderReminderSlots(reminder.slots || []);
   $("#task-reminder").value = reminder.mode;
   $("#reminder-at").value = reminder.at || "";
+  $("#single-reminder-label").innerHTML = kind === "repeat"
+    ? "额外提醒时间 <em>可选；不填则按重复执行时间提醒</em>"
+    : "提醒时间 <em>不填则使用任务节点</em>";
   updateReminderFields(reminder.mode);
   $("#task-notes").value = task?.notes || "";
   $("#task-pinned").checked = Boolean(task?.pinned);

@@ -2,6 +2,19 @@
 
 本项目从公开预览版开始遵循语义化版本号。
 
+## [0.11.1] - 2026-09-20
+
+### 修复
+
+- Windows 和 Android 客户端现在会读取重复任务的每条“规则 + 执行时间”，在选择“单次提醒”时按规则持续提醒；任务节点作为重复规则的起始日期
+- 重复任务未填写额外提醒时间时，不再错误地只使用任务节点进行一次性提醒
+- Windows 客户端补充读取日程模块的提醒
+
+### 发布
+
+- Android/HarmonyOS `versionCode` 提升至 21
+- 同步发布 Windows、Android 安装包和应用内更新清单；HarmonyOS NEXT 原生工程同步版本号
+
 ## [0.11.0] - 2026-09-13
 
 ### 新功能
@@ -234,6 +247,7 @@
 [0.7.1]: https://github.com/mmcc65/qingdan/releases/tag/v0.7.1
 [0.10.0]: https://github.com/mmcc65/qingdan/releases/tag/v0.10.0
 [0.11.0]: https://github.com/mmcc65/qingdan/releases/tag/v0.11.0
+[0.11.1]: https://github.com/mmcc65/qingdan/releases/tag/v0.11.1
 [0.9.1]: https://github.com/mmcc65/qingdan/releases/tag/v0.9.1
 [0.9.0]: https://github.com/mmcc65/qingdan/releases/tag/v0.9.0
 [0.8.0]: https://github.com/mmcc65/qingdan/releases/tag/v0.8.0

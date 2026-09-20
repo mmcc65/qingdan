@@ -13,6 +13,15 @@ public final class ReminderReceiver extends BroadcastReceiver {
         StateStore.markDelivered(context, id, occurrenceAt);
         NotificationHelper.show(context, id, "清单提醒", name == null ? "有任务需要处理" : name);
 
+        if (intent.getBooleanExtra("repeatSchedule", false)) {
+            String taskId = intent.getStringExtra("repeatTaskId");
+            int scheduleIndex = intent.getIntExtra("repeatScheduleIndex", -1);
+            if (taskId != null && scheduleIndex >= 0) {
+                AlarmScheduler.scheduleNextRepeat(context, taskId, scheduleIndex);
+            }
+            return;
+        }
+
         long interval = intent.getLongExtra("intervalMs", 0);
         long endAt = intent.getLongExtra("endAt", 0);
         long nextOccurrence = occurrenceAt + interval;
