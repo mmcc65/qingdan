@@ -22,9 +22,10 @@ function updateFloatingAdd() {
   if (!button) return;
   const projectView = activeView === "projects";
   const memoView = activeView === "memo";
-  const label = projectView ? "新建项目" : memoView ? "添加随笔" : activeView === "repeat" ? "添加重复任务" : activeView === "schedule" ? "添加日程" : "添加待办";
+  const dayNoteView = activeView === "schedule" && moduleStatus.schedule === "day-note";
+  const label = dayNoteView ? "写日筏" : projectView ? "新建项目" : memoView ? "添加随笔" : activeView === "repeat" ? "添加重复任务" : activeView === "schedule" ? "添加日程" : "添加待办";
   button.dataset.kind = projectView ? "" : activeView;
-  button.dataset.action = projectView ? "add-project" : memoView ? "add-memo" : "add-task";
+  button.dataset.action = dayNoteView ? "edit-day-note" : projectView ? "add-project" : memoView ? "add-memo" : "add-task";
   button.setAttribute("aria-label", label);
   button.title = label;
 }
@@ -110,6 +111,7 @@ function renderCounts() {
   $("#repeat-cancelled-count").textContent = state.history.filter(item => item.kind === "repeat" && item.status === "cancelled").length;
   $("#schedule-overview-count").textContent = state.schedules.filter(t => t.status === "active" && String(t.node || "").slice(0, 10) >= today).length;
   $("#schedule-active-count").textContent = state.schedules.filter(t => t.status === "active" && String(t.node || "").slice(0, 10) === scheduleDate).length;
+  $("#schedule-day-note-count").textContent = state.dayNotes.some(note => note.date === scheduleDate) ? "1" : "0";
   $("#schedule-completed-count").textContent = state.schedules.filter(t => t.status === "completed" && String(t.node || "").slice(0, 10) === scheduleDate).length;
   $("#schedule-cancelled-count").textContent = state.schedules.filter(t => t.status === "cancelled" && String(t.node || "").slice(0, 10) === scheduleDate).length;
   $("#project-active-count").textContent = rootProjects.filter(project => project.status === "active").length;
@@ -381,11 +383,24 @@ function renderRepeats() {
 function renderSchedules() {
   const status = moduleStatus.schedule;
   const overview = status === "overview";
+  const dayNoteView = status === "day-note";
+  $("#day-note-panel").classList.toggle("hidden", !dayNoteView);
+  const headingAdd = $("#schedule-view .page-heading .add-button");
+  headingAdd.dataset.action = dayNoteView ? "edit-day-note" : "add-task";
+  headingAdd.innerHTML = dayNoteView ? "<span>＋</span> 写日筏" : "<span>＋</span> 添加日程";
+  updateFloatingAdd();
   const selected = new Date(`${scheduleDate}T12:00:00`);
   $("#schedule-date").value = scheduleDate;
   $("#schedule-day-label").textContent = selected.toLocaleDateString("zh-CN", { month: "long", day: "numeric", weekday: "short" });
   $("#schedule-list").classList.toggle("hidden", status !== "active" && !overview);
   $("#schedule-archive").classList.toggle("visible", status === "completed" || status === "cancelled");
+  if (dayNoteView) {
+    const note = state.dayNotes.find(item => item.date === scheduleDate);
+    $("#day-note-panel").innerHTML = note
+      ? `<article class="day-note-card"><header><div><p class="eyebrow">整日计划与备注</p><h2>${escapeHtml($("#schedule-day-label").textContent)} · 日筏</h2></div><div><button class="text-button" data-day-note-action="edit">编辑</button><button class="text-button" data-day-note-action="delete">删除</button></div></header><div class="day-note-content">${escapeHtml(note.content)}</div></article>`
+      : `<div class="large-empty"><span>筏</span><h3>给这一天写一篇日筏</h3><p>记下整天的打算与重点，也可以提前规划明天、后天。</p><button class="primary-button" data-day-note-action="edit">写日筏</button></div>`;
+    return;
+  }
   if (overview) {
     const today = dateKey(new Date());
     const upcoming = state.schedules
@@ -419,6 +434,29 @@ function renderSchedules() {
     .sort((a, b) => (b.completedAt || b.cancelledAt || 0) - (a.completedAt || a.cancelledAt || 0));
   $("#schedule-archive").innerHTML = status === "active" ? "" : archived.length ? archived.map(item => archiveCard(item, { context: "schedule", label: formatNode(item.node) })).join("") : archiveEmpty(status);
 }
+
+function openDayNoteDialog() {
+  const note = state.dayNotes.find(item => item.date === scheduleDate);
+  $("#day-note-date").value = scheduleDate;
+  $("#day-note-date-label").textContent = `${scheduleDate.replaceAll("-", "/")} · ${$("#schedule-day-label").textContent}`;
+  $("#day-note-content").value = note?.content || "";
+  $("#day-note-dialog-title").textContent = note ? "编辑日筏" : "写日筏";
+  $("#day-note-dialog").showModal();
+  $("#day-note-content").focus();
+}
+
+$("#day-note-form").addEventListener("submit", event => {
+  event.preventDefault();
+  const content = $("#day-note-content").value.trim();
+  if (!content) { toast("请写下这一天的打算"); return; }
+  const date = $("#day-note-date").value;
+  const existing = state.dayNotes.find(note => note.date === date);
+  if (existing) { existing.content = content; existing.updatedAt = Date.now(); }
+  else state.dayNotes.push({ date, content, createdAt: Date.now(), updatedAt: Date.now() });
+  $("#day-note-dialog").close();
+  saveState();
+  toast("日筏已保存");
+});
 
 function sortedMemos(items = state.memos) {
   return [...items].sort((a, b) => Number(b.pinned) - Number(a.pinned) || (a.order ?? 0) - (b.order ?? 0) || (a.createdAt ?? 0) - (b.createdAt ?? 0));
@@ -853,11 +891,19 @@ document.addEventListener("click", event => {
   }
   const add = event.target.closest(".add-button");
   if (add) {
-    if (add.dataset.action === "add-project") openProjectDialog();
+    if (add.dataset.action === "edit-day-note") openDayNoteDialog();
+    else if (add.dataset.action === "add-project") openProjectDialog();
     else if (add.dataset.action === "add-memo" || add.dataset.kind === "memo") openMemoDialog();
     else openTaskDialog(add.dataset.kind || "todo");
   }
   const inline = event.target.closest(".add-inline");
+  const dayNoteAction = event.target.closest("[data-day-note-action]");
+  if (dayNoteAction?.dataset.dayNoteAction === "edit") openDayNoteDialog();
+  if (dayNoteAction?.dataset.dayNoteAction === "delete" && confirm("确定删除这一天的日筏吗？")) {
+    state.dayNotes = state.dayNotes.filter(note => note.date !== scheduleDate);
+    saveState();
+    toast("日筏已删除");
+  }
   if (inline) openTaskDialog("todo", null, "", inline.dataset.priority);
   const projectTask = event.target.closest(".add-project-task");
   if (projectTask) openTaskDialog("todo", null, projectTask.dataset.projectId);
@@ -1010,8 +1056,8 @@ $("#search-button").addEventListener("click", () => { $("#search-dialog").showMo
 $("#search-input").addEventListener("input", event => {
   const results = searchState(state, event.target.value);
   $("#search-results").innerHTML = results.length ? results.map(result => {
-    const label = result.type === "project" ? "项目" : result.type === "repeat" ? "重复" : result.type === "schedule" ? "日程" : result.type === "memo" ? "随笔" : result.type === "project-task" ? result.project.name : "待办";
-    const name = result.type === "memo" ? result.memo.content : result.project && !result.task ? result.project.name : result.task.name;
+    const label = result.type === "day-note" ? `日筏 · ${result.note.date}` : result.type === "project" ? "项目" : result.type === "repeat" ? "重复" : result.type === "schedule" ? "日程" : result.type === "memo" ? "随笔" : result.type === "project-task" ? result.project.name : "待办";
+    const name = result.type === "day-note" ? result.note.content : result.type === "memo" ? result.memo.content : result.project && !result.task ? result.project.name : result.task.name;
     return `<button class="search-result"><span>${escapeHtml(name)}</span><small>${escapeHtml(label)}</small></button>`;
   }).join("") : `<p class="empty-note">${event.target.value ? "没有找到相关内容" : "输入关键词开始搜索"}</p>`;
 });

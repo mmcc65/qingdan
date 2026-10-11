@@ -87,11 +87,13 @@
         </div>
         <div class="module-filter" data-module="schedule">
           <button class="active" data-status="overview">总览 <span id="schedule-overview-count">0</span></button>
+          <button data-status="day-note">日筏 <span id="schedule-day-note-count">0</span></button>
           <button data-status="active">行程 <span id="schedule-active-count">0</span></button>
           <button data-status="completed">已完成 <span id="schedule-completed-count">0</span></button>
           <button data-status="cancelled">已取消 <span id="schedule-cancelled-count">0</span></button>
         </div>
         <div class="content-panel" id="schedule-list"></div>
+        <div class="content-panel hidden" id="day-note-panel"></div>
         <div class="archive-panel" id="schedule-archive"></div>
       </section>
 
@@ -174,6 +176,16 @@
       <label class="field"><span>备注 <em>可选</em></span><textarea id="memo-notes" rows="3" maxlength="2000" placeholder="补充更多细节"></textarea></label>
       <label class="check-row"><input type="checkbox" id="memo-pinned"><span>置顶这篇随笔</span></label>
       <div class="dialog-actions"><button type="button" data-close="memo-dialog" class="secondary-button">取消</button><button type="submit" class="primary-button">保存</button></div>
+    </form>
+  </dialog>
+
+  <dialog id="day-note-dialog" class="small-dialog">
+    <form method="dialog" id="day-note-form">
+      <div class="dialog-header"><div><p class="eyebrow">整日计划与备注</p><h2 id="day-note-dialog-title">写日筏</h2></div><button type="button" class="close-button" data-close="day-note-dialog" aria-label="关闭">×</button></div>
+      <input type="hidden" id="day-note-date">
+      <p class="field-help" id="day-note-date-label"></p>
+      <label class="field"><span>这一天的打算</span><textarea id="day-note-content" required rows="8" maxlength="5000" placeholder="写下这一天的打算、重点，或想记住的事……"></textarea></label>
+      <div class="dialog-actions"><button type="button" data-close="day-note-dialog" class="secondary-button">取消</button><button type="submit" class="primary-button">保存</button></div>
     </form>
   </dialog>
 

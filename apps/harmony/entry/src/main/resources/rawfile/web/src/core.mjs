@@ -14,6 +14,7 @@ export function createInitialState() {
   return {
     version: 1,
     schedules: [],
+    dayNotes: [],
     memos: [],
     tasks: [
       { id: createId("task"), kind: "todo", name: "试着添加一项自己的任务", priority: "important", node: toInputDate(tomorrow), reminder: "none", notes: "", pinned: true, status: "active", order: 0, createdAt: Date.now() },
@@ -35,7 +36,8 @@ export function normalizeState(input) {
     tasks: Array.isArray(project?.tasks) ? project.tasks : [],
     projects: Array.isArray(project?.projects) ? project.projects.map(normalizeProject) : []
   });
-  return { version: 1, schedules: Array.isArray(input.schedules) ? input.schedules : [], memos: Array.isArray(input.memos) ? input.memos : [], tasks: input.tasks, projects: input.projects.map(normalizeProject), history: Array.isArray(input.history) ? input.history : [], cloudUpdatedAt: Number(input.cloudUpdatedAt) || 0 };
+  const dayNotes = Array.isArray(input.dayNotes) ? input.dayNotes.filter(note => note && typeof note.date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(note.date) && typeof note.content === "string" && note.content.trim()) : [];
+  return { version: 1, dayNotes, schedules: Array.isArray(input.schedules) ? input.schedules : [], memos: Array.isArray(input.memos) ? input.memos : [], tasks: input.tasks, projects: input.projects.map(normalizeProject), history: Array.isArray(input.history) ? input.history : [], cloudUpdatedAt: Number(input.cloudUpdatedAt) || 0 };
 }
 
 export function flattenProjects(projects) {
@@ -177,6 +179,7 @@ export function searchState(state, query) {
   const needle = query.trim().toLocaleLowerCase("zh-CN");
   if (!needle) return [];
   const results = [];
+  (state.dayNotes || []).filter(note => `${note.date} ${note.content}`.toLocaleLowerCase("zh-CN").includes(needle)).forEach(note => results.push({ type: "day-note", note }));
   state.tasks.filter(t => t.status === "active" && `${t.name} ${t.notes || ""}`.toLocaleLowerCase("zh-CN").includes(needle)).forEach(task => results.push({ type: task.kind, task }));
   (state.schedules || []).filter(t => t.status === "active" && `${t.name} ${t.notes || ""}`.toLocaleLowerCase("zh-CN").includes(needle)).forEach(task => results.push({ type: "schedule", task }));
   (state.memos || []).filter(memo => `${memo.content || ""} ${memo.notes || ""}`.toLocaleLowerCase("zh-CN").includes(needle)).forEach(memo => results.push({ type: "memo", memo }));

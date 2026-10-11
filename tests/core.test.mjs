@@ -19,6 +19,18 @@ test("normalizes invalid persisted data", () => {
   assert.equal(normalizeState({ tasks: [], projects: [{ id: "old", tasks: [] }] }).projects[0].status, "active");
 });
 
+test("day notes survive state normalization and are searchable without becoming tasks", () => {
+  const legacy = normalizeState({ tasks: [], projects: [] });
+  assert.deepEqual(legacy.dayNotes, []);
+  const note = { date: "2026-10-12", content: "整理方案\n下午处理反馈", createdAt: 1 };
+  const state = normalizeState({ tasks: [], projects: [], dayNotes: [note, null, { date: "bad", content: "x" }, { date: "2026-10-13", content: " " }] });
+  assert.deepEqual(state.dayNotes, [note]);
+  assert.deepEqual(normalizeState(JSON.parse(JSON.stringify(state))).dayNotes, [note]);
+  assert.equal(searchState(state, "反馈")[0].type, "day-note");
+  assert.equal(searchState(state, "2026-10-12")[0].note.date, note.date);
+  assert.equal(state.schedules.length, 0);
+});
+
 test("walks nested projects and their tasks", () => {
   const projects = [{ id: "root", tasks: [{ id: "a" }], projects: [{ id: "child", tasks: [{ id: "b" }], projects: [{ id: "leaf", tasks: [{ id: "c" }], projects: [] }] }] }];
   assert.deepEqual(flattenProjects(projects).map(({ project }) => project.id), ["root", "child", "leaf"]);
